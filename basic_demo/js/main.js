@@ -3,13 +3,12 @@ $(document).ready(function () {
   var localConnection;
   var remoteConnection;
   var sendChannel;
+  var imageChannel;
   var receiveChannel;
   var dataConstraint;
   var dataChannelSend = document.querySelector("textarea");
   var dataChannelReceive = $('#receive');;
-  //var startButton = document.querySelector('button#startButton');
   var sendButton = $('#send');
-  //var closeButton = document.querySelector('button#closeButton');
 
   sendButton.click(sendData);
 
@@ -18,16 +17,14 @@ $(document).ready(function () {
     var servers = null;
     dataConstraint = null;
     console.log('Using SCTP based data channels');
-    // SCTP is supported from Chrome 31 and is supported in FF.
-    // No need to pass DTLS constraint as it is on by default in Chrome 31.
-    // For SCTP, reliable and ordered is true by default.
-    // Add localConnection to global scope to make it visible
-    // from the browser console.
+
     window.localConnection = localConnection =
         new RTCPeerConnection(servers);
     console.log('Created local peer connection object localConnection');
 
     sendChannel = localConnection.createDataChannel('sendDataChannel',
+        dataConstraint);
+    imageChannel = localConnection.createDataChannel('imageDataChannel',
         dataConstraint);
     console.log('Created send data channel');
 
@@ -74,11 +71,6 @@ $(document).ready(function () {
     return (pc === localConnection) ? remoteConnection : localConnection;
   }
 
-  function getName(pc) {
-    return (pc === localConnection) ? 'localPeerConnection' :
-        'remotePeerConnection';
-  }
-
   function onCreateSessionDescriptionError(error) {
     console.log('Failed to create session description: ' + error.toString());
   }
@@ -94,8 +86,6 @@ $(document).ready(function () {
         onAddIceCandidateError(pc, err);
       }
     );
-    console.log(getName(pc) + ' ICE candidate: \n' + (event.candidate ?
-        event.candidate.candidate : '(null)'));
   }
 
   function onAddIceCandidateSuccess() {
@@ -116,7 +106,11 @@ $(document).ready(function () {
 
   function onReceiveMessageCallback(event) {
     console.log('Received Message');
-    dataChannelReceive.val(event.data);
+    if ( event.target.label === 'imageDataChannel' ){
+      $('#test').append("<img src="+event.data+" />")
+    } else if (event.target.label === 'sendDataChannel') {
+      dataChannelReceive.val(event.data);
+    }
   }
 
   function onSendChannelStateChange() {
@@ -130,16 +124,37 @@ $(document).ready(function () {
   }
 
   function sendData () {
-    var data = dataChannelSend.value;
-    sendChannel.send(data);
+    var textData = dataChannelSend.value;
+    var imageData = $('#cdnImg').attr('src')
+    sendChannel.send(textData);
+
+    imageChannel.send(imageData)
   }
 
-  // pc.ondatachannel = function(event) {
-  //   receiveChannel = event.channel;
-  //   receiveChannel.onmessage = function(event){
-  //     $("#receive").innerHTML = event.data;
-  //   };
-  // };
+  function toDataUrl(url, callback) {
+      var xhr = new XMLHttpRequest();
+      xhr.onload = function() {
+          var reader = new FileReader();
+          reader.onloadend = function() {
+              callback(reader.result);
+          }
+          reader.readAsDataURL(xhr.response);
+      };
+      xhr.open('GET', url);
+      xhr.responseType = 'blob';
+      xhr.send();
+  }
+
+  function fetchImage(){
+    $('cdnImg').each(function(_, img){
+      toDataUrl($(img).attr('src'), function(base64Img) {
+          $(img).parent().append("<img id='cdnImg' src="+base64Img+" />");
+          $(img).remove();
+      });
+    })
+  }
 
   createConnection();
+  fetchImage();
+
 })
