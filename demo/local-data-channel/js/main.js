@@ -22,7 +22,7 @@ $(document).ready(function () {
         new RTCPeerConnection(servers);
     console.log('Created local peer connection object localConnection');
 
-    sendChannel = localConnection.createDataChannel('sendDataChannel',
+      sendChannel = localConnection.createDataChannel('sendDataChannel',
         dataConstraint);
     imageChannel = localConnection.createDataChannel('imageDataChannel',
         dataConstraint);
