@@ -3,10 +3,10 @@
 const STUN_SERVER = {
   'iceServers': [
     {
-      'urls': 'stun:stun.l.google.com:19302'
-    }
-  ]
-}
+      'urls': 'stun:stun.l.google.com:19302',
+    },
+  ],
+};
 
 /****************************************************************************
  * WebRTC peer connection and data channel
@@ -18,34 +18,37 @@ let dataChannel;
 function signalingMessageCallback(message) {
   if (message.type === 'offer') {
     console.log('Got offer. Sending answer to peer.');
-    peerConn.setRemoteDescription(message);
-    peerConn.createAnswer(onLocalSessionCreated);
+    peerConn.setRemoteDescription(message).then(() => {
+      peerConn.createAnswer().then(onLocalSessionCreated);
+    });
 
   } else if (message.type === 'answer') {
     console.log('Got answer.');
     peerConn.setRemoteDescription(message);
 
   } else if (message.type === 'candidate') {
-    peerConn.addIceCandidate(message.candidate);
+    peerConn.addIceCandidate(message).then(() => {
+      console.log('Set addIceCandidate successfully');
+    }).catch(e => console.log(e));
 
   }
 }
 
 function createPeerConnection(isInitiator, config) {
-  console.log('Creating Peer connection as initiator?', isInitiator, 'config:',
-      config);
+  console.log('Creating Peer con as initiator?', isInitiator, 'config:',config);
   peerConn = new RTCPeerConnection(config);
 
-// send any ice candidates to the other peer
-  peerConn.onicecandidate = function(event) {
+  // send any ice candidates to the other peer
+  peerConn.onicecandidate = event => {
     console.log('icecandidate event:', event);
     if (event.candidate) {
       sendMessage({
-        type: 'candidate',
-        label: event.candidate.sdpMLineIndex,
-        id: event.candidate.sdpMid,
-        candidate: event.candidate.candidate
-      });
+            type: 'candidate',
+            label: event.candidate.sdpMLineIndex,
+            id: event.candidate.sdpMid,
+            candidate: event.candidate.candidate,
+          },
+      );
     } else {
       console.log('End of candidates.');
     }
@@ -57,9 +60,8 @@ function createPeerConnection(isInitiator, config) {
     onDataChannelCreated(dataChannel);
 
     console.log('Creating an offer');
-    peerConn.createOffer(onLocalSessionCreated);
+    peerConn.createOffer().then(onLocalSessionCreated);
   } else {
-    console.log('NILS');
     peerConn.ondatachannel = function(event) {
       console.log('ondatachannel:', event.channel);
       dataChannel = event.channel;
@@ -79,22 +81,19 @@ function onLocalSessionCreated(desc) {
 function onDataChannelCreated(channel) {
   console.log('onDataChannelCreated:', channel);
 
-  channel.onopen = function() {
+  channel.onopen = () => {
     console.log('CHANNEL opened!!!');
-    sendBtn.disabled = false;
-    snapAndSendBtn.disabled = false;
   };
 
-  channel.onclose = function () {
+  channel.onclose = () => {
     console.log('Channel closed.');
-    sendBtn.disabled = true;
-    snapAndSendBtn.disabled = true;
-  }
+  };
 
-  channel.onmessage = (data) => {
+  channel.onmessage = data => {
     console.log('Received some data');
     console.log(data);
-  }
+    document.getElementById("demo").innerHTML += '<br/>' + data.data;
+  };
 }
 
 /****************************************************************************
@@ -120,12 +119,6 @@ socket.on('joined', function(room, clientId) {
   createPeerConnection(isInitiator, STUN_SERVER);
 });
 
-// socket.on('full', function(room) {
-//   alert('Room ' + room + ' is full. We will create a new room for you.');
-//   window.location.hash = '';
-//   window.location.reload();
-// });
-
 socket.on('ready', function() {
   console.log('Socket is ready');
   createPeerConnection(isInitiator, STUN_SERVER);
@@ -140,32 +133,9 @@ socket.on('message', function(message) {
   signalingMessageCallback(message);
 });
 
-// if (location.hostname.match(/localhost|127\.0\.0/)) {
-//   socket.emit('ipaddr');
-// }
-
-// Leaving rooms and disconnecting from peers.
-// socket.on('disconnect', function(reason) {
-//   console.log(`Disconnected: ${reason}.`);
-//   sendBtn.disabled = true;
-//   snapAndSendBtn.disabled = true;
-// });
-//
-// socket.on('bye', function(room) {
-//   console.log(`Peer leaving room ${room}.`);
-//   sendBtn.disabled = true;
-//   snapAndSendBtn.disabled = true;
-//   // If peer did not create the room, re-enter to be creator.
-//   if (!isInitiator) {
-//     window.location.reload();
-//   }
-// });
-
-// window.addEventListener('unload', function() {
-//   console.log(`Unloading window. Notifying peers in ${room}.`);
-//   socket.emit('bye', room);
-// });
-
+if (location.hostname.match(/localhost|127\.0\.0/)) {
+  socket.emit('ipaddr');
+}
 
 /**
  * Send message to signaling server
@@ -183,6 +153,28 @@ function sendMessage(message) {
 window.channel = prompt('Room?');
 socket.emit('create or join', channel);
 
-function sendData(){
-  console.log('Datachannel:', dataChannel);
+let sendQueue = [];
+
+function sendDataMessage() {
+  window.sendData = prompt('Do you wanna send data? Type!');
+
+  switch (dataChannel.readyState) {
+    case 'connecting':
+      console.log('Connection not open; queueing: ' + sendData);
+      sendQueue.push(sendData);
+      break;
+    case 'open':
+      if (sendQueue.length === 0) {
+        dataChannel.send(sendData);
+      } else {
+        sendQueue.forEach((msg) => dataChannel.send(msg));
+      }
+      break;
+    case 'closing':
+      console.log('Attempted to send message while closing: ' + msg);
+      break;
+    case 'closed':
+      console.log('Error! Attempt to send while connection closed.');
+      break;
+  }
 }

@@ -20,7 +20,6 @@ const io = socketIO.listen(app);
 
 io.sockets.on('connection', function(socket) {
 
-  // convenience function to log server messages on the client
   function log() {
     var array = ['Message from server:'];
     array.push.apply(array, arguments);
@@ -29,7 +28,6 @@ io.sockets.on('connection', function(socket) {
 
   socket.on('message', function(message) {
     log('Client said: ', message);
-    // for a real app, would be room-only (not broadcast)
     socket.broadcast.emit('message', message);
   });
 
@@ -48,7 +46,7 @@ io.sockets.on('connection', function(socket) {
       log('Client ID ' + socket.id + ' joined room ' + room);
       socket.join(room);
       socket.emit('joined', room, socket.id);
-      io.sockets.in(room).emit('ready', room);
+      // io.sockets.in(room).emit('ready', room);
       socket.broadcast.emit('ready', room);
     } else { // max two clients
       socket.emit('full', room);
@@ -66,12 +64,4 @@ io.sockets.on('connection', function(socket) {
     }
   });
 
-  // socket.on('disconnect', function(reason) {
-  //   console.log(`Peer or server disconnected. Reason: ${reason}.`);
-  //   socket.broadcast.emit('bye');
-  // });
-  //
-  // socket.on('bye', function(room) {
-  //   console.log(`Peer said bye on room ${room}.`);
-  // });
 });
