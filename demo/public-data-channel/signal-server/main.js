@@ -3,7 +3,7 @@
 const os = require('os');
 const fs = require('fs');
 const nodeStatic = require('node-static');
-const https = require('https');
+const https = require('http');
 const socketIO = require('socket.io');
 
 const options = {
@@ -12,8 +12,12 @@ const options = {
 };
 
 const fileServer = new(nodeStatic.Server)();
-const app = https.createServer(options, (req, res) => {
-  fileServer.serve(req,res);
+// const app = https.createServer(options, (req, res) => {
+//   fileServer.serve(req,res);
+// }).listen(8080);
+const app = https.createServer((req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+   fileServer.serve(req,res);
 }).listen(8080);
 
 const io = socketIO.listen(app);
@@ -27,7 +31,7 @@ io.sockets.on('connection', function(socket) {
   }
 
   socket.on('message', function(message) {
-    log('Client said: ', message);
+    // log('Client said: ', message);
     socket.broadcast.emit('message', message);
   });
 

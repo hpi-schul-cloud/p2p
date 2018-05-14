@@ -3,16 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/WebRTCConnection.js"></script>
+    <script src="js/p2pCDN.js"></script>
 </head>
 <body>
     <h1>Public data channel WebRTC demo</h1>
-
     <p id="demo"></p>
 
-    <button onclick="sendDataMessage()">Send data</button>
+    <button id="btnRequestData">Request resource</button>
+    <button onclick="window.location.href='http://localhost:8080/page_2.html'">Go to page with resources</button>
 
-    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="js/client.js"></script>
+    <script>
+      document.getElementById("btnRequestData").onclick = function(){
+        document.getElementById("demo").innerHTML += "<img src='img/logo.png' />"
+      }
+    </script>
+
 </body>
 </html>
