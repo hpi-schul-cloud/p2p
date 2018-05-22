@@ -21,14 +21,25 @@ function send_message_to_client(msg, clientID){
         // Create a Message Channel
         const client = await clients.get(clientID);
         var msg_chan = new MessageChannel();
+        var receivedResponse = false;
 
         // Handler for recieving message reply from service worker
         msg_chan.port1.onmessage = function(event){
+          receivedResponse = true;
           resolve(event);
         };
 
         // Send message to service worker along with port for reply
         if(typeof client !== 'undefined'){
+          setTimeout(function(){
+
+            if(!receivedResponse){
+              msg_chan.port1.close();
+              msg_chan.port2.close();
+              console.log("closed message channel");
+              resolve(send_message_to_client(msg, clientID));
+            }
+          }, 1000)
           client.postMessage(msg, [msg_chan.port2]);
         }
     });
@@ -38,6 +49,7 @@ var getResponse = async function (event) {
   var request = event.request;
   await clients.get(event.clientId);
   var message = await send_message_to_client(event.request.url, event.clientId);
+
   return new Response(message.data);
 }
 
@@ -65,7 +77,6 @@ self.addEventListener('fetch', function(event) {
 
 self.addEventListener('message', async function(event){
     var response = await getCacheValue(event.data);
-    //var blob = await response.blob()
     var buffer = await response.arrayBuffer();
     event.ports[0].postMessage(buffer, [buffer]);
 });

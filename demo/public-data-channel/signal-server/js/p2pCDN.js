@@ -23,7 +23,6 @@ var P2PCDN = function(){
   }
 
   this.getRequest = function(url) {
-    // TODO: sync
     return sendMessageToServiceWorker(url);
   }
   var init = function() {
@@ -33,7 +32,7 @@ var P2PCDN = function(){
   var initServiceWorker = function() {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
-        navigator.serviceWorker.register('worker.js').then(function(registration) {
+        navigator.serviceWorker.register('worker.js', { scope: '/' }).then(function(registration) {
           // Registration was successful
           console.log('ServiceWorker registration successful with scope: ', registration.scope);
         }, function(err) {
