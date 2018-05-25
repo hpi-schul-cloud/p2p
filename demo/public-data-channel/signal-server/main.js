@@ -16,6 +16,7 @@ const fileServer = new(nodeStatic.Server)();
 //   fileServer.serve(req,res);
 // }).listen(8080);
 const app = https.createServer((req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
    fileServer.serve(req,res);
 }).listen(8080);
 
@@ -30,7 +31,7 @@ io.sockets.on('connection', function(socket) {
   }
 
   socket.on('message', function(message) {
-    log('Client said: ', message);
+    // log('Client said: ', message);
     socket.broadcast.emit('message', message);
   });
 

@@ -1,7 +1,7 @@
-var CACHE_NAME = 'my-site-cache-v1';
-const version = "1.2.3";
+const CACHE_NAME = 'my-site-cache-v1';
+const version = '1.2.3';
 
-var urlsToCache = [
+const urlsToCache = [
   '/img/logo.png',
 ];
 //
@@ -14,69 +14,86 @@ self.addEventListener('install', function(event) {
   //       return cache.addAll(urlsToCache);
   //     })
   // );
+  event.waitUntil(self.skipWaiting()); // Activate worker immediately
 });
 
-function send_message_to_client(msg, clientID){
-    return new Promise(async function(resolve, reject){
-        // Create a Message Channel
-        const client = await clients.get(clientID);
-        var msg_chan = new MessageChannel();
-        var receivedResponse = false;
+self.addEventListener('activate', function(event) {
+  event.waitUntil(self.clients.claim()); // Become available to all pages
+});
 
-        // Handler for recieving message reply from service worker
-        msg_chan.port1.onmessage = function(event){
-          receivedResponse = true;
-          resolve(event);
-        };
+function sendMessageToClient(msg, clientID) {
+  return new Promise(async function(resolve, reject) {
+    // Create a Message Channel
+    const client = await clients.get(clientID);
+    const msg_chan = new MessageChannel();
+    let receivedResponse = false;
 
-        // Send message to service worker along with port for reply
-        if(typeof client !== 'undefined'){
-          setTimeout(function(){
+    // Handler for receiving message reply from service worker
+    msg_chan.port1.onmessage = function(event) {
+      receivedResponse = true;
 
-            if(!receivedResponse){
-              msg_chan.port1.close();
-              msg_chan.port2.close();
-              console.log("closed message channel");
-              resolve(send_message_to_client(msg, clientID));
-            }
-          }, 1000)
-          client.postMessage(msg, [msg_chan.port2]);
+      console.log('SW: Received message from client', event.data);
+
+      resolve(event);
+    };
+
+    // Send message to service worker along with port for reply
+    if (typeof client !== 'undefined') {
+      setTimeout(function() {
+        if (!receivedResponse) {
+          msg_chan.port1.close();
+          msg_chan.port2.close();
+          console.log('SW: close message channel');
+          resolve(sendMessageToClient(msg, clientID));
         }
-    });
+      }, 2000);
+      client.postMessage(msg, [msg_chan.port2]);
+    }
+  });
 }
 
-var getResponse = async function (event) {
-  var request = event.request;
+const getResponse = async function(event) {
+  const request = event.request;
   await clients.get(event.clientId);
-  var message = await send_message_to_client(event.request.url, event.clientId);
+
+  console.log('SW: ask client to get: ', event.request.url);
+
+  const message = await sendMessageToClient(event.request.url, event.clientId);
 
   return new Response(message.data);
-}
+};
 
-var getCacheValue = function(key) {
+function getCacheValue(key) {
   return caches.open(version).then(cache => {
     return cache.match(key).then(response => {
-      var fetchPromise = fetch(key).then(networkResponse => {
+
+      const fetchPromise = fetch(key).then(networkResponse => {
         cache.put(key, networkResponse.clone());
         return networkResponse;
       });
 
       // Return the response from cache or wait for network.
       return response || fetchPromise;
-    })
+    });
   });
 }
+
 self.addEventListener('fetch', function(event) {
   const request = event.request;
-  const url = new URL(event.request.url)
+  const url = new URL(event.request.url);
+
   if (!urlsToCache.includes(url.pathname)) return;
   if (!event.clientId) return;
-  if(url.origin !== location.origin) return;
+  if (url.origin !== location.origin) return;
+
+  console.log('SW: fetch -->', event.request.url);
+
   event.respondWith(getResponse(event));
 });
 
-self.addEventListener('message', async function(event){
-    var response = await getCacheValue(event.data);
-    var buffer = await response.arrayBuffer();
-    event.ports[0].postMessage(buffer, [buffer]);
+self.addEventListener('message', async function(event) {
+  const response = await getCacheValue(event.data);
+  const buffer = await response.arrayBuffer();
+
+  event.ports[0].postMessage(buffer, [buffer]);
 });

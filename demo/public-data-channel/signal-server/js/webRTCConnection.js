@@ -2,6 +2,7 @@
 
 
 var WebRTCConnection = function(){
+
   const STUN_SERVER = {
     'iceServers': [
       {
@@ -19,30 +20,30 @@ var WebRTCConnection = function(){
 
   function signalingMessageCallback(message) {
     if (message.type === 'offer') {
-      console.log('Got offer. Sending answer to peer.');
+      // console.log('Got offer. Sending answer to peer.');
       peerConn.setRemoteDescription(message).then(() => {
         peerConn.createAnswer().then(onLocalSessionCreated);
       });
 
     } else if (message.type === 'answer') {
-      console.log('Got answer.');
+      // console.log('Got answer.');
       peerConn.setRemoteDescription(message);
 
     } else if (message.type === 'candidate') {
       peerConn.addIceCandidate(message).then(() => {
-        console.log('Set addIceCandidate successfully');
+        // console.log('Set addIceCandidate successfully');
       }).catch(e => console.log(e));
 
     }
   }
 
   function createPeerConnection(isInitiator, config) {
-    console.log('Creating Peer con as initiator?', isInitiator, 'config:',config);
+    // console.log('Creating Peer con as initiator?', isInitiator, 'config:',config);
     peerConn = new RTCPeerConnection(config);
 
     // send any ice candidates to the other peer
     peerConn.onicecandidate = event => {
-      console.log('icecandidate event:', event);
+      // console.log('icecandidate event:', event);
       if (event.candidate) {
         sendMessage({
               type: 'candidate',
@@ -52,36 +53,39 @@ var WebRTCConnection = function(){
             },
         );
       } else {
-        console.log('End of candidates.');
+        // console.log('End of candidates.');
       }
     };
 
     if (isInitiator) {
-      console.log('Creating Data Channel');
+      // console.log('Creating Data Channel');
       dataChannel = peerConn.createDataChannel('test');
       onDataChannelCreated(dataChannel);
 
-      console.log('Creating an offer');
+      // console.log('Creating an offer');
       peerConn.createOffer().then(onLocalSessionCreated);
     } else {
       peerConn.ondatachannel = function(event) {
-        console.log('ondatachannel:', event.channel);
+        // console.log('ondatachannel:', event.channel);
         dataChannel = event.channel;
+
         onDataChannelCreated(dataChannel);
       };
     }
   }
 
   function onLocalSessionCreated(desc) {
-    console.log('local session created:', desc);
+    // console.log('local session created:', desc);
     peerConn.setLocalDescription(desc).then(() => {
-      console.log('sending local desc:', peerConn.localDescription);
+      // console.log('sending local desc:', peerConn.localDescription);
       sendMessage(peerConn.localDescription);
     });
   }
 
   function onDataChannelCreated(channel) {
     console.log('onDataChannelCreated:', channel);
+
+    channel.binaryType = "arraybuffer";
 
     channel.onopen = () => {
       console.log('CHANNEL opened!!!');
@@ -92,10 +96,33 @@ var WebRTCConnection = function(){
     };
 
     channel.onmessage = event => {
-      console.log('Received some data');
-      console.log(data);
-      event.ports[0].postMessage(response);
-      // document.getElementById("demo").innerHTML += '<br/>' + data.data;
+      console.log('WebRTC: received message ', event.data);
+      console.log('WebRTC: client queue ', RESPONSE_QUEUE);
+
+      const extractUrl = event.data && event.data.url || '';
+
+      console.log('extracted url: ', extractUrl);
+
+      const idx = RESPONSE_QUEUE.findIndex(res => res.url === extractUrl);
+
+      // ATTENTION! HOTFIX, we need to map the data back to the request url
+      if (RESPONSE_QUEUE.length > 0) {
+        // response and pass it back
+        console.log('WRTC-Client: received a response for ', RESPONSE_QUEUE[RESPONSE_QUEUE.length-1]);
+        RESPONSE_QUEUE[RESPONSE_QUEUE.length-1].callBack(event.data);
+
+        RESPONSE_QUEUE.pop()
+      } else {
+        // ask own service worker
+        console.log('WRTC-Client: ask my service worker for resource');
+
+        sendSyncedMessage(event.data).then(data => {
+
+          console.log('WRTC-Client: received the requested resource', data);
+
+          dataChannel.send(data);
+        });
+      }
     };
   }
 
@@ -128,11 +155,11 @@ var WebRTCConnection = function(){
   });
 
   socket.on('log', function(array) {
-    console.log.apply(console, array);
+    // console.log.apply(console, array);
   });
 
   socket.on('message', function(message) {
-    console.log('Client received message:', message);
+    // console.log('Client received message:', message);
     signalingMessageCallback(message);
   });
 
@@ -144,7 +171,7 @@ var WebRTCConnection = function(){
    * Send message to signaling server
    */
   function sendMessage(message) {
-    console.log('Client sending message: ', message);
+    // console.log('Client sending message: ', message);
     socket.emit('message', message);
   }
 
@@ -160,7 +187,7 @@ var WebRTCConnection = function(){
   let sendQueue = [];
 
   this.sendDataMessage = function(message) {
-    var sendData = message;
+    let sendData = message;
 
     switch (dataChannel.readyState) {
       case 'connecting':
@@ -181,7 +208,21 @@ var WebRTCConnection = function(){
         console.log('Error! Attempt to send while connection closed.');
         break;
     }
-  }
+  };
+
+  const RESPONSE_QUEUE = [];
+
+  this.waitForResponse = function(url, cb) {
+    const request = {};
+    request.url = url;
+    request.callBack = cb;
+
+    RESPONSE_QUEUE.push(request);
+
+    console.log('WebRTC: ask other peer');
+
+    this.sendDataMessage(url);
+  };
 
   var sendSyncedMessage = function(msg) {
     return new Promise(function(resolve, reject){
@@ -190,12 +231,14 @@ var WebRTCConnection = function(){
 
       // Handler for recieving message reply from service worker
       msg_chan.port1.onmessage = function(event){
-        console.log("YEAH")
-        resolve(event);
+        console.log("YEAH ", event.data);
+        resolve(event.data);
       };
 
+      console.log('WebRTC: ask my service worker for: ', msg);
+
       // Send message to service worker along with port for reply
-      event.ports[0].postMessage(msg, [msg_chan.port2]);
+      navigator.serviceWorker.controller.postMessage(msg, [msg_chan.port2]);
     });
   }
 

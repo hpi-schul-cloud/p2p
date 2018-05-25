@@ -10,7 +10,16 @@
 </head>
 <body>
     <h1>Public data channel WebRTC demo</h1>
-    <img src='img/logo.png' />
+    <p id="demo"></p>
+
+    <button id="btnRequestData">Request resource</button>
+    <button onclick="window.location.href='http://localhost:8080/page_2.html'">Go to page with resources</button>
+
+    <script>
+      document.getElementById("btnRequestData").onclick = function(){
+        document.getElementById("demo").innerHTML += "<img src='img/logo.png' />"
+      }
+    </script>
 
 </body>
 </html>
