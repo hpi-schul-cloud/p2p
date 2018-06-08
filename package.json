@@ -1,9 +1,10 @@
 {
-  "name": "basic_server",
+  "name": "OpenHPI-P2P_CDN",
   "version": "1.0.0",
   "description": "Test for signaling, webrtc etc",
   "main": "index.js",
   "scripts": {
+    "babel": "babel ./src/client -d ./web_app/js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -12,5 +13,10 @@
     "node-static": "^0.7.10",
     "npm": "^6.1.0",
     "socket.io": "^2.1.0"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.3",
+    "babel-preset-env": "^1.7.0"
   }
 }
