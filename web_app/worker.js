@@ -18,7 +18,7 @@ self.addEventListener('install', function(event) {
 });
 
 self.addEventListener('activate', function(event) {
-  event.waitUntil(self.clients.claim()); // Become available to all pages
+  event.waitUntil(self.peers.claim()); // Become available to all pages
 });
 
 function sendMessageToClient(msg, clientID) {
