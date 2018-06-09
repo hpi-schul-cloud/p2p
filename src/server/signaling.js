@@ -1,12 +1,16 @@
 const socketIO = require('socket.io');
+const debug = require('debug')('openhpi:signaling');
+
+// todo: debug infos
+
+// let clientsInRoom = io.sockets.adapter.rooms[room];
+// let numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
 
 class ServerSignaling {
 
   constructor() {
     this.channels = [];
-    // todo: debug infos
-    // let clientsInRoom = io.sockets.adapter.rooms[room];
-    // let numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
+    debug('booting signaling server');
   }
 
   static _createPeer() {
@@ -25,8 +29,10 @@ class ServerSignaling {
       const newChannel = ServerSignaling._createChannel(channel);
       newChannel.peers.push(peer);
       this.channels.push(newChannel);
+      debug('new channel %s has a first peer: %o', channel, peer);
     } else {
       this.channels[idx].channel.push(peer);
+      debug('channel %s has a new peer: %o', channel, peer);
     }
   }
 
@@ -48,11 +54,13 @@ class ServerSignaling {
 
   _onHello(socket, channel) {
     const peers = this._getPeers(channel);
+    debug('received hello from client %s for channel: %s', socket.id, channel);
     socket.emit('reply', JSON.stringify(peers));
   }
 
   _onCreate(socket, channel) {
     // todo: check if room exists
+    debug('client %s creates channel %s', socket.id, channel);
     socket.join(channel);
     this._joinPeer(socket, channel);
     socket.emit('created', channel, socket.id);
@@ -60,6 +68,7 @@ class ServerSignaling {
 
   static _onJoin(socket, channel) {
     // todo: check if room has reached max members
+    debug('client %s joins channel %s', socket.id, channel);
     socket.join(channel);
     this._joinPeer(socket, channel);
     socket.emit('joined', channel, socket.id);
@@ -67,6 +76,7 @@ class ServerSignaling {
   }
 
   static _onMessage(socket, msg) {
+    debug('broadcast message: %s', msg);
     socket.broadcast.emit('message', msg);
   }
 

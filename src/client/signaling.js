@@ -1,7 +1,10 @@
+const log = debug('openhpi:signaling');
 
 class ClientSignaling {
 
   constructor() {
+    log('setup');
+
     this.socket = io.connect();
     this.peers = null;
     this.channel = null;
@@ -17,7 +20,8 @@ class ClientSignaling {
   }
 
   _onReply(peers) {
-    console.log('Got a response ', peers);
+    log('received reply %o', peers);
+
     this.peers = JSON.parse(peers);
 
     if (this.peers.length > 0) {
@@ -28,39 +32,49 @@ class ClientSignaling {
   }
 
   _create() {
+    log('create channel %s', this.channel);
+
     this.socket.emit('create', this.channel);
   }
 
   _join() {
+    log('join channel %s', this.channel);
+
     this.socket.emit('join', this.channel);
   }
 
-  _onCreated(room, clientId) {
-    console.log('Created room', room, '- my client ID is', clientId);
+  _onCreated(channel, clientId) {
+    log('channel %s created - my ID is %s', channel, clientId);
   }
 
-  _onJoined(room, clientId) {
-    console.log('This peer has joined room', room, 'with client ID', clientId);
+  _onJoined(channel, clientId) {
+    log('joined channel %s with the ID %s', channel, clientId);
+
     // createPeerConnection(isInitiator, STUN_SERVER);
   }
 
   _onNewPeer() {
-    console.log('Socket is ready');
+    log('new peer has been joined');
+
     // createPeerConnection(isInitiator, STUN_SERVER);
   }
 
   _onMessage(message) {
-    console.log('Client received message:', message);
+    log('received message %s', message);
+
     // signalingMessageCallback(message);
   }
 
   hello(channel) {
+    log('send hello for channel %s', channel);
+
     this.channel = channel;
     this.socket.emit('hello', channel);
   }
 
   send(message) {
-    console.log('Client sending message: ', message);
+    log('send message %s', message);
+
     this.socket.emit('message', message);
   }
 
@@ -68,6 +82,8 @@ class ClientSignaling {
 
 const clientSignaling = new ClientSignaling();
 // todo: this is fixed but should be student class room
-const channel = 'room-1';
+const channel = 'FIXED_CLASS_1';
+// todo: this should be moved as well
+localStorage.debug = '*,-socket.io*,-engine*';
 
 clientSignaling.hello(channel);
