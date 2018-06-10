@@ -1,11 +1,3 @@
-const STUN_SERVER = {
-  'iceServers': [
-    {
-      'urls': 'stun:stun.l.google.com:19302',
-    },
-  ],
-};
-
 class ClientSignaling {
 
   constructor() {
@@ -13,7 +5,9 @@ class ClientSignaling {
     this.log('setup');
 
     this.socket = io.connect();
-    this.webRTC = new WebRTC(this.send.bind(this), STUN_SERVER);
+    this.onNewPeerJoined = null;
+    this.onMessage = null;
+    this.onRefresh = null;
 
     this._dispatcher();
   }
@@ -22,6 +16,7 @@ class ClientSignaling {
     this.socket.on('created', this._onCreated.bind(this));
     this.socket.on('joined', this._onJoined.bind(this));
     this.socket.on('message', this._onMessage.bind(this));
+    this.socket.on('refresh', this._onRefresh.bind(this));
   }
 
   _onCreated(channel, peerId) {
@@ -31,13 +26,18 @@ class ClientSignaling {
   _onJoined(peerId) {
     this.log('client %s has been joined.', peerId);
 
-    this.webRTC.createPeerConnection(peerId, true);
+    this.onNewPeerJoined(peerId);
   }
 
   _onMessage(from, message) {
     this.log('received message %s from %s', message, from);
 
-    this.webRTC.messageCallback(from, message);
+    this.onMessage(from, message);
+  }
+
+  _onRefresh(peerId, url) {
+    this.log('peer %s has now %s', peerId, url);
+
   }
 
   hello(channel) {
@@ -52,12 +52,11 @@ class ClientSignaling {
     this.socket.emit('message', to, message);
   }
 
+  broadcastCachedResource(url) {
+    this.log('broadcast cached resource %s', url);
+
+    this.socket.emit('cached', url);
+  }
+
 }
 
-const clientSignaling = new ClientSignaling();
-// todo: this is fixed but should be student class room
-const channel = 'FIXED_CLASS_1';
-// todo: this should be moved as well
-localStorage.debug = '*,-socket.io*,-engine*';
-
-clientSignaling.hello(channel);

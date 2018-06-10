@@ -62,25 +62,6 @@ class ServerSignaling {
     return {}
   }
 
-  _dispatcher(handler, socket) {
-    socket.on('hello', channel => handler._onHello(socket, channel));
-    socket.on('message', (to, msg) => handler._onMessage(socket, to, msg));
-  }
-
-  _onHello(socket, channel) {
-    debug('received hello from client %s for channel: %s', socket.id, channel);
-
-    // todo: how many channels can a peer create? Abuse possible ...
-
-    const peerCount = this._getPeers(socket.id, channel).length;
-
-    if (peerCount === 0) {
-      this._createChannel(socket, channel);
-    } else {
-      this._joinChannel(socket, channel);
-    }
-  }
-
   _createChannel(socket, channel) {
     debug('creates channel %s client-id %s', channel, socket.id);
 
@@ -102,6 +83,27 @@ class ServerSignaling {
     socket.broadcast.emit('joined', socket.id);
   }
 
+
+  _dispatcher(handler, socket) {
+    socket.on('hello', channel => handler._onHello(socket, channel));
+    socket.on('message', (to, msg) => handler._onMessage(socket, to, msg));
+    socket.on('cached', url => handler._onCached(socket, url));
+  }
+
+  _onHello(socket, channel) {
+    debug('received hello from client %s for channel: %s', socket.id, channel);
+
+    // todo: how many channels can a peer create? Abuse possible ...
+
+    const peerCount = this._getPeers(socket.id, channel).length;
+
+    if (peerCount === 0) {
+      this._createChannel(socket, channel);
+    } else {
+      this._joinChannel(socket, channel);
+    }
+  }
+
   _onMessage(socket, to, msg) {
     debug('message %s to %s', msg, to);
 
@@ -109,6 +111,12 @@ class ServerSignaling {
     const peer = this._getPeer(to);
 
     peer.socket.emit('message', from, msg);
+  }
+
+  _onCached(socket, url) {
+    debug('client %s has cached %s', socket.id, url);
+
+    socket.broadcast.emit('refresh', socket.id, url);
   }
 
   start(app) {

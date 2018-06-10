@@ -6,21 +6,32 @@
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="js/debug.js"></script>
-    <script src="js/WebRTCConnection.js"></script>
+
+    <script src="js/webRTC.js"></script>
     <script src="js/signaling.js"></script>
-    <!--<script src="../src/client/p2pCDN.js"></script>-->
+    <script src="js/clientServiceWorker.js"></script>
+
+    <script src="js/p2pCDN.js"></script>
+
 </head>
 <body>
     <h1>OpenHPI: P2P CDN</h1>
-    <p id="demo"></p>
+    <p id="info"></p>
+    <p id="data"></p>
 
     <button id="btnStats">Stats</button>
+    <button id="btnData">Request</button>
+
 
     <script>
       document.getElementById("btnStats").onclick = function(){
-        var doc = document.getElementById("demo");
+        var doc = document.getElementById("info");
+        doc.innerHTML = 'Peer connections: ' + webRTC.peers.length;
+      }
 
-        doc.innerHTML = 'Peer connections: ' + clientSignaling.webRTC.peers.length;
+      document.getElementById("btnData").onclick = function(){
+        var doc = document.getElementById("data");
+        doc.innerHTML += '<img src="img/fab.gif">';
       }
     </script>
 

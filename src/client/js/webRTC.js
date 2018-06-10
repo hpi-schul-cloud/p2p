@@ -2,6 +2,7 @@ class WebRTC {
 
   constructor(signalFunction, stunServer) {
     this.log = debug('openhpi:webRTC');
+    this.log('setup');
 
     this.signal = signalFunction;
     this.stunServer = stunServer;
@@ -75,7 +76,7 @@ class WebRTC {
     };
   }
 
-  createPeerConnection(clientId, isInitiator) {
+  createPeerConnection(clientId, isInitiator = true) {
     this.log('creating connection as initiator? %s', isInitiator);
 
     const peer = {
@@ -150,9 +151,14 @@ class WebRTC {
     }
   }
 
+  requestResource(url, cb) {
+    this.log('I would try to find a peer for %s', url);
+    cb('');
+  }
+
 }
 
-var WebRTCConnection = function() {
+var WebRTC_old = function() {
 
   const STUN_SERVER = {
     'iceServers': [
