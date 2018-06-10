@@ -1,81 +1,55 @@
-const log = debug('openhpi:signaling');
+const STUN_SERVER = {
+  'iceServers': [
+    {
+      'urls': 'stun:stun.l.google.com:19302',
+    },
+  ],
+};
 
 class ClientSignaling {
 
   constructor() {
-    log('setup');
+    this.log = debug('openhpi:signaling');
+    this.log('setup');
 
     this.socket = io.connect();
-    this.peers = null;
-    this.channel = null;
+    this.webRTC = new WebRTC(this.send.bind(this), STUN_SERVER);
+
     this._dispatcher();
   }
 
   _dispatcher() {
-    this.socket.on('reply', this._onReply.bind(this));
     this.socket.on('created', this._onCreated.bind(this));
     this.socket.on('joined', this._onJoined.bind(this));
-    this.socket.on('newPeer', this._onNewPeer.bind(this));
     this.socket.on('message', this._onMessage.bind(this));
   }
 
-  _onReply(peers) {
-    log('received reply %o', peers);
-
-    this.peers = JSON.parse(peers);
-
-    if (this.peers.length > 0) {
-      this._join();
-    } else {
-      this._create();
-    }
+  _onCreated(channel, peerId) {
+    this.log('created channel %s, peerId %s', channel, peerId);
   }
 
-  _create() {
-    log('create channel %s', this.channel);
+  _onJoined(peerId) {
+    this.log('client %s has been joined.', peerId);
 
-    this.socket.emit('create', this.channel);
+    this.webRTC.createPeerConnection(peerId, true);
   }
 
-  _join() {
-    log('join channel %s', this.channel);
+  _onMessage(from, message) {
+    this.log('received message %s from %s', message, from);
 
-    this.socket.emit('join', this.channel);
-  }
-
-  _onCreated(channel, clientId) {
-    log('channel %s created - my ID is %s', channel, clientId);
-  }
-
-  _onJoined(channel, clientId) {
-    log('joined channel %s with the ID %s', channel, clientId);
-
-    // createPeerConnection(isInitiator, STUN_SERVER);
-  }
-
-  _onNewPeer() {
-    log('new peer has been joined');
-
-    // createPeerConnection(isInitiator, STUN_SERVER);
-  }
-
-  _onMessage(message) {
-    log('received message %s', message);
-
-    // signalingMessageCallback(message);
+    this.webRTC.messageCallback(from, message);
   }
 
   hello(channel) {
-    log('send hello for channel %s', channel);
+    this.log('send hello for channel %s', channel);
 
-    this.channel = channel;
     this.socket.emit('hello', channel);
   }
 
-  send(message) {
-    log('send message %s', message);
+  send(to, message) {
+    this.log('send message %s to client %s', message, to);
 
-    this.socket.emit('message', message);
+    this.socket.emit('message', to, message);
   }
 
 }

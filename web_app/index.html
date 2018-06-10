@@ -6,19 +6,21 @@
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="js/debug.js"></script>
+    <script src="js/WebRTCConnection.js"></script>
     <script src="js/signaling.js"></script>
-    <!--<script src="js/WebRTCConnection.js"></script>-->
     <!--<script src="../src/client/p2pCDN.js"></script>-->
 </head>
 <body>
-    <h1>Public data channel WebRTC demo</h1>
+    <h1>OpenHPI: P2P CDN</h1>
     <p id="demo"></p>
 
-    <button id="btnRequestData">Request resource</button>
+    <button id="btnStats">Stats</button>
 
     <script>
-      document.getElementById("btnRequestData").onclick = function(){
-        document.getElementById("demo").innerHTML += "<img src='img/logo.png' />"
+      document.getElementById("btnStats").onclick = function(){
+        var doc = document.getElementById("demo");
+
+        doc.innerHTML = 'Peer connections: ' + clientSignaling.webRTC.peers.length;
       }
     </script>
 
