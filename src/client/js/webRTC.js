@@ -6,7 +6,9 @@ class WebRTC {
 
     this.signal = signalFunction;
     this.stunServer = stunServer;
+    this.peerId = null;
     this.peers = [];
+    this.messageTypes = Object.freeze({"refresh": 1});
   }
 
   _peerExists(peerId) {
@@ -14,11 +16,18 @@ class WebRTC {
   }
 
   _getPeer(peerId) {
-    const idx = this.peers.map(p => p.id).indexOf(peerId);
+    let idx = -1;
 
-    if(idx >= 0)
-      return this.peers[idx]
-    return {};
+    for (let i = 0; i < this.peers.length; i++) {
+      if(this.peers[i].id === peerId) {
+        idx = i;
+        break;
+      }
+    }
+
+    if (idx >= 0)
+      return this.peers[idx];
+    return undefined;
   }
 
   _onLocalSessionCreated(peerId, desc) {
@@ -42,11 +51,25 @@ class WebRTC {
     };
 
     channel.onclose = () => {
+      // Todo: signaling server broadcast to clients
       this.log('channel closed');
     };
 
     channel.onmessage = event => {
-      this.log('received message: %o', event.data);
+      this.log('received message: %o', event);
+
+      const message = this._abToMessage(event.data);
+
+      this.log('encoded array buffer %o', message);
+
+      switch (message.messageType) {
+        case this.messageTypes.refresh:
+          this.refreshPeerResources(message.from, message.resourceHash);
+          break;
+        // Further cases ...
+      }
+
+
       // console.log('WebRTC: client queue ', RESPONSE_QUEUE);
       //
       // const extractUrl = event.data && event.data.url || '';
@@ -76,13 +99,38 @@ class WebRTC {
     };
   }
 
-  createPeerConnection(clientId, isInitiator = true) {
+  _sendViaDataChannel(peer, message) {
+    switch (peer.dataChannel.readyState) {
+      case 'connecting':
+        this.log('connection not open; queueing: %s', message);
+        peer.requestQueue.push(message);
+        break;
+      case 'open':
+        if (peer.requestQueue.length === 0) {
+          peer.dataChannel.send(message);
+        } else {
+          peer.requestQueue.forEach(msg => peer.dataChannel.send(msg));
+          peer.requestQueue = [];
+        }
+        break;
+      case 'closing':
+        this.log('attempted to send message while closing: %s', message);
+        break;
+      case 'closed':
+        this.log('attempted to send while connection closed: %s', message);
+        break;
+    }
+  }
+
+  createPeerConnection(peerID, isInitiator = true) {
     this.log('creating connection as initiator? %s', isInitiator);
 
     const peer = {
-      id: clientId,
+      id: peerID,
       con: new RTCPeerConnection(this.stunServer),
       dataChannel: null,
+      resources: [],
+      requestQueue: [],
     };
 
     this.peers.push(peer);
@@ -151,64 +199,158 @@ class WebRTC {
     }
   }
 
+  _toHex(buffer) {
+    const hexCodes = [];
+    const view = new DataView(buffer);
+    for (let i = 0; i < view.byteLength; i += 4) {
+      const value = view.getUint32(i);
+      const stringValue = value.toString(16);
+      const padding = '00000000';
+      const paddedValue = (padding + stringValue).slice(-padding.length);
+
+      hexCodes.push(paddedValue);
+    }
+    // Join all the hex strings into one
+    return hexCodes.join('');
+  }
+
+  _sha256(str) {
+    const buffer = new TextEncoder('utf-8').encode(str);
+
+    return crypto.subtle.digest('SHA-256', buffer).then(hash => {
+      return this._toHex(hash);
+    });
+  }
+
+  _abTostr(buf) {
+    return String.fromCharCode.apply(null, new Uint8Array(buf));
+  }
+
+  _strToab(input) {
+    let str = input;
+    if (typeof input === 'number')
+      str = input.toString();
+
+    // const buf = new ArrayBuffer(str.length * 2); // 2 bytes for each char
+    const buf = new ArrayBuffer(str.length); // 1 bytes for each char
+    const bufView = new Uint8Array(buf);
+
+    for (let i = 0, strLen = str.length; i < strLen; i++) {
+      bufView[i] = str.charCodeAt(i);
+    }
+
+    return buf;
+  }
+
+  _conacteAbs(abs) {
+    let byteLength = 0;
+    let length = 0;
+
+    abs.forEach(ab => {
+      byteLength += ab.byteLength
+    });
+
+    const result = new Uint8Array(byteLength);
+
+    abs.forEach(ab => {
+      result.set(new Uint8Array(ab), length);
+      length += ab.byteLength;
+    });
+
+    return result;
+  }
+
+  _abToMessage(ab) {
+    const message = {};
+    const sizes = {type: 1, peerId: 24, resourceHash: 64};
+
+    let chunkStart = 0;
+    let chunkEnd = sizes.type;
+    const typeAb = new Uint8Array(ab.slice(chunkStart, chunkEnd));
+
+    chunkStart = chunkEnd;
+    chunkEnd += sizes.peerId;
+    const peerIdAb = new Uint8Array(ab.slice(chunkStart, chunkEnd));
+
+    message.messageType = parseInt(this._abTostr(typeAb));
+    message.from = this._abTostr(peerIdAb);
+
+    switch (message.messageType) {
+      case this.messageTypes.refresh:
+        chunkStart = chunkEnd;
+        chunkEnd += sizes.resourceHash;
+        const resourceAb = new Uint8Array(ab.slice(chunkStart, chunkEnd));
+        message.resourceHash = this._abTostr(resourceAb);
+        break;
+        // further cases
+    }
+
+    return message;
+  }
+
+  broadcastPeers(url) {
+    this._sha256(url).then(hash => {
+      const typeAb = this._strToab(this.messageTypes.refresh);
+      const fromAb = this._strToab(this.peerId);
+      const dataAb = this._strToab(hash);
+      const msg = this._conacteAbs([typeAb, fromAb, dataAb]);
+
+      this.log('typeAb %o', typeAb);
+      this.log('fromAb %o', fromAb);
+      this.log('dataAb %o', dataAb);
+      this.log('msg %o', msg);
+
+      this.peers.forEach(peer => {
+        this._sendViaDataChannel(peer, msg);
+      });
+
+    });
+
+  }
+
   requestResource(url, cb) {
-    this.log('I would try to find a peer for %s', url);
-    cb('');
+    this._sha256(url).then(hash => {
+      const data = this._strToab(hash);
+
+      this.log('hash %s', hash);
+      this.log('array buffer %o', data);
+    });
+
+    this.log('try to find a peer for %s', url);
+
+    const peers = this.peers.filter(p => p.resources.indexOf(url) >= 0);
+
+    this.log('found %d peers', peers.length);
+
+    // if(peers.length > 0) {
+    //   // todo: choose random peer
+    //   const peer = peers[0];
+    //   const data = this._strToArrayBuffer(url);
+    //
+    //   // send request over datachannel
+    //
+    // } else {
+    cb(undefined);
+    // }
+  }
+
+  refreshPeerResources(peerId, resourceHash) {
+    const peer = this._getPeer(peerId);
+
+    this.log('peers %o', this.peers);
+
+    if (!peer) {
+      this.log('ERROR! Could not find peer!');
+    }
+
+    peer.resources.push(resourceHash);
+
+    this.log('refreshed peer %s for resource %s', peerId, resourceHash);
   }
 
 }
 
 var WebRTC_old = function() {
-
-  const STUN_SERVER = {
-    'iceServers': [
-      {
-        'urls': 'stun:stun.l.google.com:19302',
-      },
-    ],
-  };
-
-  /****************************************************************************
-   * WebRTC peer connection and data channel
-   ****************************************************************************/
-
-  let peerConn;
-  let dataChannel;
-
-  /****************************************************************************
-   * Interaction
-   ****************************************************************************/
-
-  // Joining a room.
-  // TODO: why global???
-  window.channel = 'dataChannel';
-  socket.emit('create or join', channel);
-
-  let sendQueue = [];
-
-  this.sendDataMessage = function(message) {
-    let sendData = message;
-
-    switch (dataChannel.readyState) {
-      case 'connecting':
-        console.log('Connection not open; queueing: ' + sendData);
-        sendQueue.push(sendData);
-        break;
-      case 'open':
-        if (sendQueue.length === 0) {
-          dataChannel.send(sendData);
-        } else {
-          sendQueue.forEach((msg) => dataChannel.send(msg));
-        }
-        break;
-      case 'closing':
-        console.log('Attempted to send message while closing: ' + msg);
-        break;
-      case 'closed':
-        console.log('Error! Attempt to send while connection closed.');
-        break;
-    }
-  };
 
   const RESPONSE_QUEUE = [];
 

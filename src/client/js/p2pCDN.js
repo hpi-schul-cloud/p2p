@@ -1,8 +1,6 @@
-
+// Init
 localStorage.debug = '*,-socket.io*,-engine*';
-
 const channel = 'FIXED_CLASS_1';
-
 const STUN_SERVER = {
   'iceServers': [
     {
@@ -11,10 +9,15 @@ const STUN_SERVER = {
   ],
 };
 
-
+// Definition
 const clientSignaling = new ClientSignaling();
 const webRTC = new WebRTC(clientSignaling.send.bind(clientSignaling), STUN_SERVER);
 const clientServiceWorker = new ClientServiceWorker();
+
+// Setting up middleware
+clientSignaling.onReceivedPeerId = peerId => {
+  webRTC.peerId = peerId;
+};
 
 clientSignaling.onNewPeerJoined = peerId => {
   webRTC.createPeerConnection(peerId);
@@ -29,8 +32,8 @@ clientServiceWorker.onRequest = (url, cb) => {
 };
 
 clientServiceWorker.onCached = (url) => {
-  clientSignaling.broadcastCachedResource(url);
+  webRTC.broadcastPeers(url);
 };
 
-
+// Send handshake to server
 clientSignaling.hello(channel);

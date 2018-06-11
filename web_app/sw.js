@@ -146,7 +146,6 @@ self.addEventListener('fetch', function(event) {
   console.log('fetch --> ', event.request.url);
 
   handelRequest(event);
-  // event.respondWith(getResponse(event));
 });
 
 self.addEventListener('message', async function(event) {

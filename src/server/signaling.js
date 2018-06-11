@@ -20,6 +20,20 @@ class ServerSignaling {
     return {channel: channel, peers: []};
   }
 
+  _getClientId(socket) {
+    const max = 24;
+    let result = socket.id;
+
+    if (result.length > max)
+      this.log('error! socket id %s longer than %d', socket.id, max);
+
+    while(result.length < max) {
+      result += '0'
+    }
+
+    return result;
+  }
+
   _addPeer(channel, peer) {
     const idx = this.channels.map(c => c.channel).indexOf(channel);
     const channelExists = idx >= 0;
@@ -38,7 +52,7 @@ class ServerSignaling {
   _joinPeer(socket, channel) {
     const peer = ServerSignaling._createPeer();
 
-    peer.id = socket.id;
+    peer.id = this._getClientId(socket);
     peer.socket = socket;
     peer.channel = channel;
 
@@ -63,39 +77,45 @@ class ServerSignaling {
   }
 
   _createChannel(socket, channel) {
-    debug('creates channel %s client-id %s', channel, socket.id);
+    const peerId = this._getClientId(socket);
+
+    debug('creates channel %s client-id %s', channel, peerId);
 
     // todo: check if room exists
 
     socket.join(channel);
     this._joinPeer(socket, channel);
-    socket.emit('created', channel, socket.id);
+    socket.emit('created', channel, this._getClientId(socket));
   }
 
   _joinChannel(socket, channel) {
-    debug('joins channel %s, client-id %s ', channel, socket.id);
+    const peerId = this._getClientId(socket);
+
+    debug('joins channel %s, client-id %s ', channel, peerId);
 
     // todo: check if room has reached max members
 
     socket.join(channel);
     this._joinPeer(socket, channel);
 
-    socket.broadcast.emit('joined', socket.id);
+    socket.emit('joined', channel, peerId);
+    socket.broadcast.emit('ready', peerId);
   }
 
 
   _dispatcher(handler, socket) {
     socket.on('hello', channel => handler._onHello(socket, channel));
     socket.on('message', (to, msg) => handler._onMessage(socket, to, msg));
-    socket.on('cached', url => handler._onCached(socket, url));
   }
 
   _onHello(socket, channel) {
-    debug('received hello from client %s for channel: %s', socket.id, channel);
+    const peerId = this._getClientId(socket);
+
+    debug('received hello from client %s for channel: %s', peerId, channel);
 
     // todo: how many channels can a peer create? Abuse possible ...
 
-    const peerCount = this._getPeers(socket.id, channel).length;
+    const peerCount = this._getPeers(peerId, channel).length;
 
     if (peerCount === 0) {
       this._createChannel(socket, channel);
@@ -107,16 +127,10 @@ class ServerSignaling {
   _onMessage(socket, to, msg) {
     debug('message %s to %s', msg, to);
 
-    const from = socket.id;
+    const from = this._getClientId(socket);
     const peer = this._getPeer(to);
 
     peer.socket.emit('message', from, msg);
-  }
-
-  _onCached(socket, url) {
-    debug('client %s has cached %s', socket.id, url);
-
-    socket.broadcast.emit('refresh', socket.id, url);
   }
 
   start(app) {

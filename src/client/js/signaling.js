@@ -5,6 +5,7 @@ class ClientSignaling {
     this.log('setup');
 
     this.socket = io.connect();
+    this.onReceivedPeerId = null;
     this.onNewPeerJoined = null;
     this.onMessage = null;
     this.onRefresh = null;
@@ -15,15 +16,23 @@ class ClientSignaling {
   _dispatcher() {
     this.socket.on('created', this._onCreated.bind(this));
     this.socket.on('joined', this._onJoined.bind(this));
+    this.socket.on('ready', this._onReady.bind(this));
     this.socket.on('message', this._onMessage.bind(this));
-    this.socket.on('refresh', this._onRefresh.bind(this));
   }
 
   _onCreated(channel, peerId) {
     this.log('created channel %s, peerId %s', channel, peerId);
+
+    this.onReceivedPeerId(peerId);
   }
 
-  _onJoined(peerId) {
+  _onJoined(channel, peerId) {
+    this.log('joined channel %s, peerId %s ', channel, peerId);
+
+    this.onReceivedPeerId(peerId);
+  }
+
+  _onReady(peerId) {
     this.log('client %s has been joined.', peerId);
 
     this.onNewPeerJoined(peerId);
@@ -33,11 +42,6 @@ class ClientSignaling {
     this.log('received message %s from %s', message, from);
 
     this.onMessage(from, message);
-  }
-
-  _onRefresh(peerId, url) {
-    this.log('peer %s has now %s', peerId, url);
-
   }
 
   hello(channel) {
@@ -52,11 +56,4 @@ class ClientSignaling {
     this.socket.emit('message', to, message);
   }
 
-  broadcastCachedResource(url) {
-    this.log('broadcast cached resource %s', url);
-
-    this.socket.emit('cached', url);
-  }
-
 }
-
