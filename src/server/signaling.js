@@ -78,7 +78,6 @@ class ServerSignaling {
 
   _createChannel(socket, channel) {
     const peerId = this._getClientId(socket);
-
     debug('creates channel %s client-id %s', channel, peerId);
 
     // todo: check if room exists
@@ -90,7 +89,6 @@ class ServerSignaling {
 
   _joinChannel(socket, channel) {
     const peerId = this._getClientId(socket);
-
     debug('joins channel %s, client-id %s ', channel, peerId);
 
     // todo: check if room has reached max members
@@ -105,12 +103,12 @@ class ServerSignaling {
 
   _dispatcher(handler, socket) {
     socket.on('hello', channel => handler._onHello(socket, channel));
+    socket.on('close', () => handler._onClose(socket));
     socket.on('message', (to, msg) => handler._onMessage(socket, to, msg));
   }
 
   _onHello(socket, channel) {
     const peerId = this._getClientId(socket);
-
     debug('received hello from client %s for channel: %s', peerId, channel);
 
     // todo: how many channels can a peer create? Abuse possible ...
@@ -124,13 +122,21 @@ class ServerSignaling {
     }
   }
 
+  _onClose(socket) {
+    const peerId = this._getClientId(socket);
+    debug('close connection for %s', peerId);
+
+    socket.broadcast.emit('closed', peerId);
+  }
+
   _onMessage(socket, to, msg) {
     debug('message %s to %s', msg, to);
 
     const from = this._getClientId(socket);
     const peer = this._getPeer(to);
 
-    peer.socket.emit('message', from, msg);
+    if(peer.socket)
+      peer.socket.emit('message', from, msg);
   }
 
   start(app) {

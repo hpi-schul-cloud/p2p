@@ -23,6 +23,10 @@ clientSignaling.onNewPeerJoined = peerId => {
   webRTC.createPeerConnection(peerId);
 };
 
+clientSignaling.onClosed = peerId => {
+  webRTC.removePeer(peerId);
+};
+
 clientSignaling.onMessage = (from, message) => {
   webRTC.messageCallback(from, message);
 };
@@ -39,6 +43,10 @@ webRTC.onRequested = (hash, respond) => {
   clientServiceWorker.messageToServiceWorker(hash).then(response => {
     respond(response);
   });
+};
+
+window.onbeforeunload = () => {
+  clientSignaling.close();
 };
 
 // Send handshake to server
