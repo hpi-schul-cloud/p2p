@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="js/debug.js"></script>
+    <script src="js/utils.js"></script>
 
     <script src="js/webRTC.js"></script>
     <script src="js/signaling.js"></script>
@@ -17,21 +19,28 @@
 <body>
     <h1>OpenHPI: P2P CDN</h1>
     <p id="info"></p>
-    <p id="data"></p>
+    <p id="dataBig"></p>
+    <p id="dataSmall"></p>
 
     <button id="btnStats">Stats</button>
-    <button id="btnData">Request</button>
+    <button id="btnDataBig">Request big resource</button>
+    <button id="btnDataSmall">Request small resource</button>
 
     <script>
       document.getElementById("btnStats").onclick = function(){
         var doc = document.getElementById("info");
         doc.innerHTML = 'Peer connections: ' + webRTC.peers.length;
-      }
+      };
 
-      document.getElementById("btnData").onclick = function(){
-        var doc = document.getElementById("data");
+      document.getElementById("btnDataBig").onclick = function(){
+        var doc = document.getElementById("dataBig");
         doc.innerHTML += '<img src="img/fab.gif">';
-      }
+      };
+
+      document.getElementById("btnDataSmall").onclick = function(){
+        var doc = document.getElementById("dataSmall");
+        doc.innerHTML += '<img src="img/logo.jpg">';
+      };
     </script>
 
 </body>

@@ -7,8 +7,12 @@ class WebRTC {
     this.signal = signalFunction;
     this.stunServer = stunServer;
     this.peerId = null;
+    this.onRequested = null;
     this.peers = [];
-    this.messageTypes = Object.freeze({"refresh": 1});
+    this.requests = [];
+    this.messageTypes = Object.freeze({
+      "update": 1, "request": 2, "chunk": 3, "answer": 4
+    });
   }
 
   _peerExists(peerId) {
@@ -41,6 +45,25 @@ class WebRTC {
     });
   }
 
+  _getRequest(from, hash) {
+    let idx = -1;
+
+    for (let i = 0; i < this.requests.length; i++) {
+      if(this.requests[i].from === from && this.requests[i].hash === hash) {
+        idx = i;
+        break;
+      }
+    }
+
+    if (idx >= 0) {
+      const req = this.requests[idx];
+
+      this.requests = this.requests.slice(idx, 1); // delete request from cache
+      return req;
+    }
+    return undefined;
+  }
+
   _onDataChannelCreated(channel) {
     this.log('onDataChannelCreated: %o', channel);
 
@@ -62,40 +85,32 @@ class WebRTC {
 
       this.log('encoded array buffer %o', message);
 
-      switch (message.messageType) {
-        case this.messageTypes.refresh:
-          this.refreshPeerResources(message.from, message.resourceHash);
+      switch (message.type) {
+        case this.messageTypes.update:
+          this.refreshPeerResources(message.from, message.hash);
           break;
-        // Further cases ...
+        case this.messageTypes.request:
+          this.log('received a request ...');
+          this.onRequested(message.hash, response => {
+            const peer = this._getPeer(message.from);
+
+            this._sendToPeer(peer, this.messageTypes.answer, message.hash, response);
+          });
+          break;
+        case this.messageTypes.chunk:
+          this.log('received an chunk ...');
+          // to implement
+          break;
+        case this.messageTypes.answer:
+          const res = this._getRequest(message.from, message.hash);
+
+          if(res) {
+            res.response(message.data);
+          } else {
+            this.log('error, could not find response!?')
+          }
+          break;
       }
-
-
-      // console.log('WebRTC: client queue ', RESPONSE_QUEUE);
-      //
-      // const extractUrl = event.data && event.data.url || '';
-      //
-      // console.log('extracted url: ', extractUrl);
-      //
-      // const idx = RESPONSE_QUEUE.findIndex(res => res.url === extractUrl);
-      //
-      // // ATTENTION! HOTFIX, we need to map the data back to the request url
-      // if (RESPONSE_QUEUE.length > 0) {
-      //   // response and pass it back
-      //   console.log('WRTC-Client: received a response for ', RESPONSE_QUEUE[RESPONSE_QUEUE.length-1]);
-      //   RESPONSE_QUEUE[RESPONSE_QUEUE.length-1].callBack(event.data);
-      //
-      //   RESPONSE_QUEUE.pop()
-      // } else {
-      //   // ask own service worker
-      //   console.log('WRTC-Client: ask my service worker for resource');
-      //
-      //   sendSyncedMessage(event.data).then(data => {
-      //
-      //     console.log('WRTC-Client: received the requested resource', data);
-      //
-      //     dataChannel.send(data);
-      //   });
-      // }
     };
   }
 
@@ -199,34 +214,11 @@ class WebRTC {
     }
   }
 
-  _toHex(buffer) {
-    const hexCodes = [];
-    const view = new DataView(buffer);
-    for (let i = 0; i < view.byteLength; i += 4) {
-      const value = view.getUint32(i);
-      const stringValue = value.toString(16);
-      const padding = '00000000';
-      const paddedValue = (padding + stringValue).slice(-padding.length);
-
-      hexCodes.push(paddedValue);
-    }
-    // Join all the hex strings into one
-    return hexCodes.join('');
-  }
-
-  _sha256(str) {
-    const buffer = new TextEncoder('utf-8').encode(str);
-
-    return crypto.subtle.digest('SHA-256', buffer).then(hash => {
-      return this._toHex(hash);
-    });
-  }
-
-  _abTostr(buf) {
+  static _abTostr(buf) {
     return String.fromCharCode.apply(null, new Uint8Array(buf));
   }
 
-  _strToab(input) {
+  static _strToab(input) {
     let str = input;
     if (typeof input === 'number')
       str = input.toString();
@@ -261,134 +253,99 @@ class WebRTC {
   }
 
   _abToMessage(ab) {
-    const message = {};
-    const sizes = {type: 1, peerId: 24, resourceHash: 64};
+    const message = {type: null, from: null, hash: null, data: null};
+    const sizes = {type: 1, peerId: 24, hash: 64};
 
+    // Get type
     let chunkStart = 0;
     let chunkEnd = sizes.type;
     const typeAb = new Uint8Array(ab.slice(chunkStart, chunkEnd));
 
+    // Get from
     chunkStart = chunkEnd;
     chunkEnd += sizes.peerId;
-    const peerIdAb = new Uint8Array(ab.slice(chunkStart, chunkEnd));
+    const fromAb = new Uint8Array(ab.slice(chunkStart, chunkEnd));
 
-    message.messageType = parseInt(this._abTostr(typeAb));
-    message.from = this._abTostr(peerIdAb);
+    // Get hash
+    chunkStart = chunkEnd;
+    chunkEnd += sizes.hash;
+    const resourceAb = new Uint8Array(ab.slice(chunkStart, chunkEnd));
 
-    switch (message.messageType) {
-      case this.messageTypes.refresh:
-        chunkStart = chunkEnd;
-        chunkEnd += sizes.resourceHash;
-        const resourceAb = new Uint8Array(ab.slice(chunkStart, chunkEnd));
-        message.resourceHash = this._abTostr(resourceAb);
-        break;
-        // further cases
+    message.type = parseInt(WebRTC._abTostr(typeAb));
+    message.from = WebRTC._abTostr(fromAb);
+    message.hash = WebRTC._abTostr(resourceAb);
+
+    // Get data
+    if(message.type === this.messageTypes.answer) {
+      chunkStart = chunkEnd;
+      message.data = new Uint8Array(ab.slice(chunkStart));
     }
 
     return message;
   }
 
-  broadcastPeers(url) {
-    this._sha256(url).then(hash => {
-      const typeAb = this._strToab(this.messageTypes.refresh);
-      const fromAb = this._strToab(this.peerId);
-      const dataAb = this._strToab(hash);
-      const msg = this._conacteAbs([typeAb, fromAb, dataAb]);
+  _sendToPeer(peer, msgType, hash, data = undefined) {
+    const typeAb = WebRTC._strToab(msgType);
+    const fromAb = WebRTC._strToab(this.peerId);
+    const hashAb = WebRTC._strToab(hash);
 
-      this.log('typeAb %o', typeAb);
-      this.log('fromAb %o', fromAb);
-      this.log('dataAb %o', dataAb);
-      this.log('msg %o', msg);
+    let msg;
+    if(data) {
+      msg = this._conacteAbs([typeAb, fromAb, hashAb, data]);
+    } else {
+      msg = this._conacteAbs([typeAb, fromAb, hashAb]);
+    }
 
-      this.peers.forEach(peer => {
-        this._sendViaDataChannel(peer, msg);
-      });
+    // this.log('typeAb %o', typeAb);
+    // this.log('fromAb %o', fromAb);
+    // this.log('dataAb %o', data);
+    // this.log('msg %o', msg);
 
-    });
-
+    this._sendViaDataChannel(peer, msg);
   }
 
-  requestResource(url, cb) {
-    this._sha256(url).then(hash => {
-      const data = this._strToab(hash);
+  updatePeers(hash) {
+    this.log('broadcast peers for %s', hash);
 
-      this.log('hash %s', hash);
-      this.log('array buffer %o', data);
+    this.peers.forEach(peer => {
+      this._sendToPeer(peer, this.messageTypes.update, hash);
     });
-
-    this.log('try to find a peer for %s', url);
-
-    const peers = this.peers.filter(p => p.resources.indexOf(url) >= 0);
-
-    this.log('found %d peers', peers.length);
-
-    // if(peers.length > 0) {
-    //   // todo: choose random peer
-    //   const peer = peers[0];
-    //   const data = this._strToArrayBuffer(url);
-    //
-    //   // send request over datachannel
-    //
-    // } else {
-    cb(undefined);
-    // }
   }
 
-  refreshPeerResources(peerId, resourceHash) {
+  requestPeer(hash, cb) {
+    this.log('try to find a peer for %s', hash);
+
+    const peers = this.peers.filter(p => p.resources.indexOf(hash) >= 0);
+    const count = peers.length;
+
+    this.log('found %d peers', count);
+
+    if(count > 0) {
+      const randomPeerId = Math.floor(Math.random() * count);
+      const peer = peers[randomPeerId];
+      const request = {
+        from: peer.id,
+        hash: hash,
+        response: cb
+      };
+      this.log('send request to other peer');
+      this._sendToPeer(peer, this.messageTypes.request, hash);
+      this.requests.push(request);
+    } else {
+      cb(undefined);
+    }
+  }
+
+  refreshPeerResources(peerId, hash) {
     const peer = this._getPeer(peerId);
-
-    this.log('peers %o', this.peers);
 
     if (!peer) {
       this.log('ERROR! Could not find peer!');
     }
 
-    peer.resources.push(resourceHash);
+    peer.resources.push(hash);
 
-    this.log('refreshed peer %s for resource %s', peerId, resourceHash);
+    this.log('updated peer %s with resource %s', peerId, hash);
   }
 
 }
-
-var WebRTC_old = function() {
-
-  const RESPONSE_QUEUE = [];
-
-  this.waitForResponse = function(url, cb) {
-    const request = {};
-    request.url = url;
-    request.callBack = cb;
-
-    RESPONSE_QUEUE.push(request);
-
-    console.log('WebRTC: ask other peer');
-
-    this.sendDataMessage(url);
-  };
-
-  var sendSyncedMessage = function(msg) {
-    return new Promise(function(resolve, reject) {
-      // Create a Message Channel
-      var msg_chan = new MessageChannel();
-
-      // Handler for recieving message reply from service worker
-      msg_chan.port1.onmessage = function(event) {
-        console.log('YEAH ', event.data);
-        resolve(event.data);
-      };
-
-      console.log('WebRTC: ask my service worker for: ', msg);
-
-      // Send message to service worker along with port for reply
-      navigator.serviceWorker.controller.postMessage(msg, [msg_chan.port2]);
-    });
-  };
-
-  this.getRequestFromPeer = function(url) {
-    return sendSyncedMessage(url).then(function(response) {
-      console.log('AND THE ANSWER IS:');
-      console.log(response.data);
-    });
-
-  };
-};

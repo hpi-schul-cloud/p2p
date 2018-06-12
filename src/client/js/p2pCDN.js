@@ -28,11 +28,17 @@ clientSignaling.onMessage = (from, message) => {
 };
 
 clientServiceWorker.onRequest = (url, cb) => {
-  webRTC.requestResource(url, cb);
+  webRTC.requestPeer(url, cb);
 };
 
-clientServiceWorker.onCached = (url) => {
-  webRTC.broadcastPeers(url);
+clientServiceWorker.onUpdate = hash => {
+  webRTC.updatePeers(hash);
+};
+
+webRTC.onRequested = (hash, respond) => {
+  clientServiceWorker.messageToServiceWorker(hash).then(response => {
+    respond(response);
+  });
 };
 
 // Send handshake to server

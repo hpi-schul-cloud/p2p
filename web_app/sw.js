@@ -1,9 +1,11 @@
 const CACHE_NAME = 'my-site-cache-v1';
 const version = '1.2.3';
-
 const urlsToCache = [
   '/img/fab.gif',
+  '/img/logo.jpg',
 ];
+
+self.importScripts('/js/utils.js');
 
 self.addEventListener('install', function(event) {
   // Perform install steps
@@ -69,23 +71,20 @@ function getCacheValue(key) {
   });
 }
 
-function getFromCache(url) {
+function getFromCache(key) {
   return caches.open(version).then(cache => {
-    cache.match(url).then(response => {
-      response;
+    return cache.match(key).then(response => {
+      return response;
     });
-   });
+  });
 }
 
-async function getFromClient(event) {
-  const request = event.request;
-  await clients.get(event.clientId);
+async function getFromClient(clientId, hash) {
+  console.log('ask client to get: ', hash);
 
-  console.log('ask client to get: ', event.request.url);
+  const message = await sendMessageToClient(hash, clientId);
 
-  const message = await sendMessageToClient(event.request.url, event.clientId);
-
-  if(message.data)
+  if (message.data)
     return new Response(message.data);
   return undefined;
 }
@@ -94,40 +93,48 @@ function getFromInternet(url) {
   return fetch(url);
 }
 
-async function putIntoCache(url, response) {
+async function putIntoCache(key, response) {
+  const obj = response.clone();
+
   await caches.open(version).then(cache => {
-    cache.put(url, response.clone());
+    return cache.put(key, obj);
   });
 }
 
-async function notifyPeers(cachedUrl, clientID){
-  const msg = {type: 'resource', url: cachedUrl};
+async function notifyPeers(hash, clientID) {
+  const msg = {type: 'update', hash};
   const client = await clients.get(clientID);
 
   client.postMessage(msg);
 }
 
-function handelRequest(event) {
-  // check cache
-  getFromCache(event.request.url).then(cacheResponse => {
-    console.log('cacheResponse ', cacheResponse);
-    if(cacheResponse)
-      event.respondWith(cacheResponse);
-
-    // check peers
-    getFromClient(event).then(peerResponse => {
-      console.log('peerResponse ', peerResponse);
-      if(peerResponse){
-        putIntoCache(event.request.url, peerResponse);
-        event.respondWith(peerResponse);
-        notifyPeers(event.request.url, event.clientId);
-      }
-
-      // get from the internet
-      getFromInternet(event.request.url).then(response => {
-        console.log('response ', response);
-        putIntoCache(event.request.url, response);
-        notifyPeers(event.request.url, event.clientId);
+function handelRequest(url, clientId) {
+  return new Promise((resolve) => {
+    sha256(url).then(hash => {
+      // check cache
+      getFromCache(hash).then(cacheResponse => {
+        console.log('cacheResponse ', cacheResponse);
+        if (cacheResponse) {
+          resolve(cacheResponse);
+        } else {
+          // check peers
+          getFromClient(clientId, hash).then(peerResponse => {
+            console.log('peerResponse ', peerResponse);
+            if (peerResponse) {
+              putIntoCache(hash, peerResponse);
+              notifyPeers(hash, clientId);
+              resolve(peerResponse);
+            } else {
+              // get from the internet
+              getFromInternet(url).then(response => {
+                console.log('internet response ', response);
+                putIntoCache(hash, response);
+                notifyPeers(hash, clientId);
+                resolve(response);
+              });
+            }
+          });
+        }
       });
     });
   });
@@ -145,12 +152,22 @@ self.addEventListener('fetch', function(event) {
 
   console.log('fetch --> ', event.request.url);
 
-  handelRequest(event);
+  event.respondWith(handelRequest(event.request.url, event.clientId));
 });
 
-self.addEventListener('message', async function(event) {
-  const response = await getCacheValue(event.data);
-  const buffer = await response.arrayBuffer();
+self.addEventListener('message', function(event) {
+  const hash = event.data;
 
-  event.ports[0].postMessage(buffer, [buffer]);
+  console.log('received request for ', hash);
+  getFromCache(hash).then(cacheResponse => {
+    console.log('cached object ', cacheResponse);
+    cacheResponse.arrayBuffer().then(buffer => {
+      console.log('got buffer ', buffer);
+      event.ports[0].postMessage(buffer, [buffer]);
+    });
+  });
+  // const response = await getCacheValue(event.data);
+  // const buffer = await response.arrayBuffer();
+  //
+  // event.ports[0].postMessage(buffer, [buffer]);
 });

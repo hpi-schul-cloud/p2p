@@ -5,7 +5,7 @@ class ClientServiceWorker {
     this.log('setup');
 
     this.onRequest = null;
-    this.onCached = null;
+    this.onUpdate = null;
     this._initServiceWorker();
   }
 
@@ -30,10 +30,10 @@ class ClientServiceWorker {
 
   _initListeners() {
     navigator.serviceWorker.addEventListener('message', function(event) {
-      this.log('received request for: %s', event.data);
+      this.log('received request for: %o', event.data);
 
       if(event.data.type){
-        this.onCached(event.data.url);
+        this.onUpdate(event.data.hash);
       } else {
 
         const reply = response => {
