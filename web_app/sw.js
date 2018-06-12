@@ -49,7 +49,7 @@ function sendMessageToClient(msg, clientID) {
           console.log('close message channel');
           resolve(sendMessageToClient(msg, clientID));
         }
-      }, 2000);
+      }, 10000);
 
       client.postMessage(msg, [msg_chan.port2]);
     }
@@ -166,8 +166,4 @@ self.addEventListener('message', function(event) {
       event.ports[0].postMessage(buffer, [buffer]);
     });
   });
-  // const response = await getCacheValue(event.data);
-  // const buffer = await response.arrayBuffer();
-  //
-  // event.ports[0].postMessage(buffer, [buffer]);
 });
