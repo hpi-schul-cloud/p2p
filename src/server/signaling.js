@@ -42,7 +42,7 @@ class ServerSignaling {
       const newChannel = ServerSignaling._createChannel(channel);
       newChannel.peers.push(peer);
       this.channels.push(newChannel);
-      debug('new channel %s has a first peer: %o', channel, peer);
+      debug('create channel %s with peer: %o', channel, peer);
     } else {
       this.channels[idx].peers.push(peer);
       debug('channel %s has a new peer: %o', channel, peer);
