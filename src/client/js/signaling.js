@@ -1,4 +1,4 @@
-class ClientSignaling {
+class Signaling {
 
   constructor() {
     this.log = debug('openhpi:signaling');

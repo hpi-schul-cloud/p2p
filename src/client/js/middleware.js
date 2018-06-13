@@ -1,7 +1,7 @@
-class ClientServiceWorker {
+class ServiceWorkerMiddleware {
 
   constructor() {
-    this.log = debug('openhpi:ClientServiceWorker');
+    this.log = debug('openhpi:ServiceWorkerMiddleware');
     this.log('setup');
 
     this.onRequest = null;
@@ -48,11 +48,9 @@ class ClientServiceWorker {
 
   messageToServiceWorker(msg) {
     return new Promise((resolve, reject) => {
-      // Create a Message Channel
       const msg_chan = new MessageChannel();
-
       // Handler for receiving message reply from service worker
-      msg_chan.port1.onmessage = function(event) {
+      msg_chan.port1.onmessage = event => {
         if (event.data.error) {
           reject(event.data.error);
         } else {
@@ -61,9 +59,7 @@ class ClientServiceWorker {
       };
 
       this.log('ask service worker for %s', msg);
-
       // Send message to service worker along with port for reply
-      // todo: why port2?
       navigator.serviceWorker.controller.postMessage(msg, [msg_chan.port2]);
     });
   }

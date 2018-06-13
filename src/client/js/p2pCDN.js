@@ -10,44 +10,44 @@ const STUN_SERVER = {
 };
 
 // Definition
-const clientSignaling = new ClientSignaling();
-const webRTC = new WebRTC(clientSignaling.send.bind(clientSignaling), STUN_SERVER);
-const clientServiceWorker = new ClientServiceWorker();
+const signaling = new Signaling();
+const peer = new Peer(signaling.send.bind(signaling), STUN_SERVER);
+const serviceWorkerMiddleware = new ServiceWorkerMiddleware();
 
 // Setting up middleware
-clientSignaling.onReceivedPeerId = peerId => {
-  webRTC.peerId = peerId;
+signaling.onReceivedPeerId = peerId => {
+  peer.peerId = peerId;
 };
 
-clientSignaling.onNewPeerJoined = peerId => {
-  webRTC.createPeerConnection(peerId);
+signaling.onNewPeerJoined = peerId => {
+  peer.connectTo(peerId);
 };
 
-clientSignaling.onClosed = peerId => {
-  webRTC.removePeer(peerId);
+signaling.onClosed = peerId => {
+  peer.removePeer(peerId);
 };
 
-clientSignaling.onMessage = (from, message) => {
-  webRTC.messageCallback(from, message);
+signaling.onMessage = (from, message) => {
+  peer.messageCallback(from, message);
 };
 
-clientServiceWorker.onRequest = (url, cb) => {
-  webRTC.requestPeer(url, cb);
+serviceWorkerMiddleware.onRequest = (url, cb) => {
+  peer.requestPeers(url, cb);
 };
 
-clientServiceWorker.onUpdate = hash => {
-  webRTC.updatePeers(hash);
+serviceWorkerMiddleware.onUpdate = hash => {
+  peer.updatePeers(hash);
 };
 
-webRTC.onRequested = (hash, respond) => {
-  clientServiceWorker.messageToServiceWorker(hash).then(response => {
+peer.onRequested = (hash, respond) => {
+  serviceWorkerMiddleware.messageToServiceWorker(hash).then(response => {
     respond(response);
   });
 };
 
 window.onbeforeunload = () => {
-  clientSignaling.close();
+  signaling.close();
 };
 
 // Send handshake to server
-clientSignaling.hello(channel);
+signaling.hello(channel);

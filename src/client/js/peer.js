@@ -1,7 +1,7 @@
-class WebRTC {
+class Peer {
 
   constructor(signalFunction, stunServer) {
-    this.log = debug('openhpi:webRTC');
+    this.log = debug('openhpi:peer');
     this.log('setup');
 
     this.signal = signalFunction;
@@ -173,7 +173,7 @@ class WebRTC {
     }
   }
 
-  createPeerConnection(peerID, isInitiator = true) {
+  connectTo(peerID, isInitiator = true) {
     this.log('creating connection as initiator? %s', isInitiator);
 
     const peer = {
@@ -226,7 +226,7 @@ class WebRTC {
     const peerExists = this._peerExists(peerId);
 
     if (!peerExists) {
-      this.createPeerConnection(peerId, false);
+      this.connectTo(peerId, false);
     }
 
     const peer = this._getPeer(peerId);
@@ -413,7 +413,7 @@ class WebRTC {
     });
   }
 
-  requestPeer(hash, cb) {
+  requestPeers(hash, cb) {
     this.log('try to find a peer for %s', hash);
 
     const peers = this.peers.filter(p => p.resources.indexOf(hash) >= 0);
