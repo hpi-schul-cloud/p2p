@@ -12,10 +12,14 @@ class Peer {
 
     this.peers = [];
     this.requests = [];
+    this.resourceCache = [];
+    this.discover = false;
+    this.discoverRequestCount = 3;
+    this.discoveredPeers = [];
 
     this.message = Object.freeze({
-      types: {update: 1, request: 2, chunk: 3, answer: 4},
-      sizes: {
+      types: {discover: 1, update: 2, request: 3, chunk: 4, answer: 5},
+      sizes: { // in byte
         type: 1,
         peerId: 24,
         hash: 64,
@@ -86,7 +90,114 @@ class Peer {
     const idx = this._getRequestId(from, hash);
 
     if (idx >= 0) {
-      this.requests = this.requests.slice(idx, 1);
+      this.requests.splice(idx, 1);
+    }
+  }
+
+  _discoverPeers() {
+    if(this.discover){
+      let i = 0;
+      while(i < this.discoverRequestCount && i < this.peers.length) {
+        const peer = this.peers[i];
+        const discoverType = this.message.types.discover;
+        const timestamp = new Date().getTime().toString();
+
+        if(peer.dataChannel) { // only to peers with dataChannel
+          this.log('discover request to peer %s', peer.id);
+          sha256(timestamp).then(hash => {
+            // request discovery
+            this._requestPeer(peer, discoverType, hash, (peersAb) => {
+              const discoveredPeers = JSON.parse(abToStr(peersAb));
+              const setDiscovered = discoveredPeers.length > this.discoveredPeers.length;
+
+              this.log('discovered peers %o from %s', discoveredPeers, peer.id);
+
+              if(setDiscovered){
+                this.discoveredPeers = discoveredPeers;
+                this._setDiscoveredResources();
+              }
+            });
+          });
+          // at least on successfully requested
+          this.discover = false;
+        }
+        i +=1;
+      }
+    }
+  }
+
+  _setDiscoveredResources() {
+    this.discoveredPeers.map(discoveredPeer => {
+      const peerId = discoveredPeer.id;
+
+      if(this._peerExists(peerId)){
+        const connectedPeer = this._getPeer(peerId);
+
+        discoveredPeer.resources.map(r => {
+          if (connectedPeer.resources.indexOf(r) === -1) {
+            this.log('set resource %s of connected peer %s', r, peerId);
+            connectedPeer.resources.push(r);
+          }
+        });
+      }
+    });
+  }
+
+  _handleDiscovery(message) {
+    let discovery;
+    if(this.resourceCache.length > 0){
+      discovery = [{id: this.peerId, resources: this.resourceCache}];
+      this.resourceCache = [];
+    } else {
+      discovery = this.peers.map(p => {
+        return {id: p.id, resources: p.resources}
+      });
+    }
+    const discoveryAb = strToAb(JSON.stringify(discovery));
+
+    this._handleResponse(message, discoveryAb);
+  }
+
+  _handleUpdate(message) {
+    const peer = this._getPeer(message.from);
+
+    if (!peer) {
+      this.log('ERROR! Could not find peer!');
+    } else {
+      this.log('updated peer %s with resource %s', message.from, message.hash);
+      peer.resources.push(message.hash);
+    }
+  }
+
+  _handleResponse(message, responseAb) {
+    const peer = this._getPeer(message.from);
+
+    if (responseAb.byteLength <= this.message.sizes.maxData) {
+      this._sendToPeer(peer, this.message.types.answer, message.hash, responseAb);
+    } else {
+      this._sendChunkedToPeer(peer, message.hash, responseAb);
+    }
+  }
+
+  _handleChunk(message) {
+    const req = this._getRequest(message.from, message.hash);
+
+    req.chunks.push({id: message.chunkId, data: message.data});
+
+    if(req.chunks.length === message.chunkCount) {
+      this._removeRequest(message.from, message.hash);
+      req.respond(this._concatMessage(req.chunks));
+    }
+  }
+
+  _handleAnswer(message) {
+    const req = this._getRequest(message.from, message.hash);
+
+    if (req) {
+      this._removeRequest(message.from, message.hash);
+      req.respond(message.data);
+    } else {
+      this.log('error, could not find response!?');
     }
   }
 
@@ -97,6 +208,7 @@ class Peer {
 
     channel.onopen = () => {
       this.log('data channel opened');
+      this._discoverPeers();
     };
 
     channel.onclose = () => {
@@ -105,46 +217,28 @@ class Peer {
 
     channel.onmessage = event => {
       this.log('received message: %o', event);
-
       const message = this._abToMessage(event.data);
       const types =  this.message.types;
 
       this.log('encoded array buffer %o', message);
 
       switch (message.type) {
+        case types.discover:
+          this._handleDiscovery(message);
+          break;
         case types.update:
-          this.refreshPeerResources(message.from, message.hash);
+          this._handleUpdate(message);
           break;
         case types.request:
-          this.onRequested(message.hash, response => {
-            const peer = this._getPeer(message.from);
-
-            if (response.byteLength <= this.message.sizes.maxData) {
-              this._sendToPeer(peer, types.answer, message.hash, response);
-            } else {
-              this._sendChunkedToPeer(peer, message.hash, response);
-            }
+          this.onRequested(message.hash, responseAb => {
+            this._handleResponse(message, responseAb);
           });
           break;
         case types.chunk:
-          const resChunk = this._getRequest(message.from, message.hash);
-
-          resChunk.chunks.push({id: message.chunkId, data: message.data});
-
-          if(resChunk.chunks.length === message.chunkCount) {
-            this._removeRequest(message.from, message.hash);
-            resChunk.respond(this._concatMessage(resChunk.chunks));
-          }
+          this._handleChunk(message);
           break;
         case types.answer:
-          const resAnswer = this._getRequest(message.from, message.hash);
-
-          if (resAnswer) {
-            this._removeRequest(message.from, message.hash);
-            resAnswer.respond(message.data);
-          } else {
-            this.log('error, could not find response!?');
-          }
+          this._handleAnswer(message);
           break;
       }
     };
@@ -213,6 +307,7 @@ class Peer {
         this._onLocalSessionCreated(peer.id, desc);
       });
     } else {
+      this.discover = true;
       peer.con.ondatachannel = event => {
         this.log('ondatachannel: %o', event.channel);
 
@@ -253,7 +348,7 @@ class Peer {
 
   _abToMessage(ab) {
     const message = {
-      types: null,
+      type: null,
       from: null,
       hash: null,
       chunkId: null,
@@ -390,14 +485,14 @@ class Peer {
       const idx = this._getPeerIdx(peerId);
 
       this.peers[idx].con.close();
-      this.peers = this.peers.slice(idx, 1);
+      this.peers.splice(idx, 1);
 
       let i = 0;
       while(i < this.requests.length){
         const req = this.requests[i];
 
         if(req.from === peerId){
-          this.requests = this.requests.slice(i, 1);
+          this.requests.splice(i, 1);
         } else {
           i += 1;
         }
@@ -406,16 +501,27 @@ class Peer {
   }
 
   updatePeers(hash) {
-    this.log('broadcast peers for %s', hash);
-
-    this.peers.forEach(peer => {
-      this._sendToPeer(peer, this.message.types.update, hash);
-    });
+    if(this.peers.length === 0) {
+      this.log('no peer connections, use resource cache for %s', hash);
+      this.resourceCache.push(hash);
+    } else {
+      this.log('broadcast peers for %s', hash);
+      this.peers.forEach(peer => {
+        this._sendToPeer(peer, this.message.types.update, hash);
+      });
+    }
   }
 
-  requestPeers(hash, cb) {
-    this.log('try to find a peer for %s', hash);
+  _requestPeer(peer, msgType, hash, cb) {
+    const request = { from: peer.id, hash: hash, chunks: [], respond: cb };
 
+    this.log('send request to peer %s', peer.id);
+    this._sendToPeer(peer, msgType, hash);
+    this.requests.push(request);
+  }
+
+  requestResourceFromPeers(hash, cb) {
+    this.log('try to find a peer for %s', hash);
     const peers = this.peers.filter(p => p.resources.indexOf(hash) >= 0);
     const count = peers.length;
 
@@ -424,26 +530,11 @@ class Peer {
     if (count > 0) {
       const randomPeerId = Math.floor(Math.random() * count);
       const peer = peers[randomPeerId];
-      const request = { from: peer.id, hash: hash, chunks: [], respond: cb };
 
-      this.log('send request to peer %s', peer.id);
-      this._sendToPeer(peer, this.message.types.request, hash);
-      this.requests.push(request);
+      this._requestPeer(peer, this.message.types.request, hash, cb);
     } else {
       cb(undefined);
     }
-  }
-
-  refreshPeerResources(peerId, hash) {
-    const peer = this._getPeer(peerId);
-
-    if (!peer) {
-      this.log('ERROR! Could not find peer!');
-    }
-
-    peer.resources.push(hash);
-
-    this.log('updated peer %s with resource %s', peerId, hash);
   }
 
 }

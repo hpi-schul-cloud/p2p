@@ -32,16 +32,16 @@ class ServiceWorkerMiddleware {
     navigator.serviceWorker.addEventListener('message', function(event) {
       this.log('received request for: %o', event.data);
 
-      if(event.data.type){
+      if(event.data.type === 'update'){
         this.onUpdate(event.data.hash);
-      } else {
-
+      } else if (event.data.type === 'request') {
         const reply = response => {
           this.log('have received something: %s', response);
           event.ports[0].postMessage(response);
         };
-
         this.onRequest(event.data, reply);
+      } else {
+        this.log('cant match request!');
       }
     }.bind(this));
   }

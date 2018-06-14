@@ -25,7 +25,8 @@
     <script>
       document.getElementById("btnStats").onclick = function(){
         var doc = document.getElementById("info");
-        doc.innerHTML = 'Peer connections: ' + peer.peers.length;
+        doc.innerHTML = 'My PeerId: ' + peer.peerId;
+        doc.innerHTML += '</br> Peer connections: ' + peer.peers.length;
       };
 
       document.getElementById("btnDataBig").onclick = function(){

@@ -31,8 +31,8 @@ signaling.onMessage = (from, message) => {
   peer.messageCallback(from, message);
 };
 
-serviceWorkerMiddleware.onRequest = (url, cb) => {
-  peer.requestPeers(url, cb);
+serviceWorkerMiddleware.onRequest = (hash, cb) => {
+  peer.requestResourceFromPeers(hash, cb);
 };
 
 serviceWorkerMiddleware.onUpdate = hash => {

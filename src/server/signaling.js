@@ -1,23 +1,12 @@
 const socketIO = require('socket.io');
 const debug = require('debug')('openhpi:signaling');
 
-// let clientsInRoom = io.sockets.adapter.rooms[room];
-// let numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
-
 class ServerSignaling {
 
   constructor() {
     debug('setup');
-    this.channels = [];
+    this.io = null;
     this.peers = [];
-  }
-
-  static _createPeer() {
-    return {id: 0, channel: null, socket: null, resources: []};
-  }
-
-  static _createChannel(channel) {
-    return {channel: channel, peers: []};
   }
 
   _getClientId(socket) {
@@ -34,38 +23,13 @@ class ServerSignaling {
     return result;
   }
 
-  _addPeer(channel, peer) {
-    const idx = this.channels.map(c => c.channel).indexOf(channel);
-    const channelExists = idx >= 0;
-
-    if (!channelExists) {
-      const newChannel = ServerSignaling._createChannel(channel);
-      newChannel.peers.push(peer);
-      this.channels.push(newChannel);
-      debug('create channel %s with peer: %o', channel, peer);
-    } else {
-      this.channels[idx].peers.push(peer);
-      debug('channel %s has a new peer: %o', channel, peer);
-    }
-  }
-
-  _joinPeer(socket, channel) {
-    const peer = ServerSignaling._createPeer();
+  _joinPeer(socket) {
+    const peer = {id: 0, socket: null};
 
     peer.id = this._getClientId(socket);
     peer.socket = socket;
-    peer.channel = channel;
 
-    this._addPeer(channel, peer);
     this.peers.push(peer);
-  }
-
-  _getPeers(requestPeerId, channel) {
-    const idx = this.channels.map(c => c.channel).indexOf(channel);
-
-    if (idx >= 0)
-      return this.channels[idx].peers.filter(p => p.id !== requestPeerId);
-    return [];
   }
 
   _getPeer(peerId) {
@@ -77,21 +41,19 @@ class ServerSignaling {
   }
 
   _createChannel(socket, channel) {
+    debug('creates channel %s client-id %s', channel, socket.id);
     const peerId = this._getClientId(socket);
-    debug('creates channel %s client-id %s', channel, peerId);
-
-    // todo: check if room exists
 
     socket.join(channel);
     this._joinPeer(socket, channel);
-    socket.emit('created', channel, this._getClientId(socket));
+    socket.emit('created', channel, peerId);
   }
 
   _joinChannel(socket, channel) {
+    debug('joins channel %s, client-id %s ', channel, socket.id);
     const peerId = this._getClientId(socket);
-    debug('joins channel %s, client-id %s ', channel, peerId);
 
-    // todo: check if room has reached max members
+    // todo: check if room has reached max members?
 
     socket.join(channel);
     this._joinPeer(socket, channel);
@@ -100,7 +62,6 @@ class ServerSignaling {
     socket.broadcast.emit('ready', peerId);
   }
 
-
   _dispatcher(handler, socket) {
     socket.on('hello', channel => handler._onHello(socket, channel));
     socket.on('close', () => handler._onClose(socket));
@@ -108,14 +69,11 @@ class ServerSignaling {
   }
 
   _onHello(socket, channel) {
-    const peerId = this._getClientId(socket);
-    debug('received hello from client %s for channel: %s', peerId, channel);
+    debug('received hello from client %s for channel: %s', socket.id, channel);
+    const rooms = this.io.adapter.rooms[channel];
+    const clients = rooms ? Object.keys(rooms.sockets).length : 0;
 
-    // todo: how many channels can a peer create? Abuse possible ...
-
-    const peerCount = this._getPeers(peerId, channel).length;
-
-    if (peerCount === 0) {
+    if (clients === 0) {
       this._createChannel(socket, channel);
     } else {
       this._joinChannel(socket, channel);
@@ -123,15 +81,17 @@ class ServerSignaling {
   }
 
   _onClose(socket) {
+    debug('close connection for %s', socket.id);
     const peerId = this._getClientId(socket);
-    debug('close connection for %s', peerId);
+    const idx = this.peers.map(p => p.id).indexOf(peerId);
 
+    if(idx >= 0)
+      this.peers.splice(idx, 1);
     socket.broadcast.emit('closed', peerId);
   }
 
   _onMessage(socket, to, msg) {
-    debug('message %s to %s', msg, to);
-
+    debug('message %o to %s', msg, to);
     const from = this._getClientId(socket);
     const peer = this._getPeer(to);
 
@@ -140,12 +100,10 @@ class ServerSignaling {
   }
 
   start(app) {
-    socketIO.listen(app).sockets.on('connection', socket =>
+    this.io = socketIO.listen(app).sockets.on('connection', socket =>
         this._dispatcher(this, socket)
     );
   }
-
-
 }
 
 module.exports = ServerSignaling;

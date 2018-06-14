@@ -25,18 +25,16 @@ self.addEventListener('activate', function(event) {
 
 function sendMessageToClient(msg, clientID) {
   return new Promise(async function(resolve, reject) {
-    // Create a Message Channel
     const client = await clients.get(clientID);
     const msg_chan = new MessageChannel();
+    const timeout = 5000;
 
     let receivedResponse = false;
 
     // Handler for receiving message reply from service worker
     msg_chan.port1.onmessage = function(event) {
       receivedResponse = true;
-
       console.log('received message from client ', event.data);
-
       resolve(event);
     };
 
@@ -47,27 +45,12 @@ function sendMessageToClient(msg, clientID) {
           msg_chan.port1.close();
           msg_chan.port2.close();
           console.log('close message channel');
-          resolve(sendMessageToClient(msg, clientID));
+          reject('Timeout of ' + timeout);
         }
-      }, 10000);
+      }, timeout);
 
       client.postMessage(msg, [msg_chan.port2]);
     }
-  });
-}
-
-function getCacheValue(key) {
-  return caches.open(version).then(cache => {
-    return cache.match(key).then(response => {
-
-      const fetchPromise = fetch(key).then(networkResponse => {
-        cache.put(key, networkResponse.clone());
-        return networkResponse;
-      });
-
-      // Return the response from cache or wait for network.
-      return response || fetchPromise;
-    });
   });
 }
 
@@ -81,8 +64,9 @@ function getFromCache(key) {
 
 async function getFromClient(clientId, hash) {
   console.log('ask client to get: ', hash);
+  const msg = {type: 'request', hash};
 
-  const message = await sendMessageToClient(hash, clientId);
+  const message = await sendMessageToClient(msg, clientId);
 
   if (message.data)
     return new Response(message.data);
@@ -114,27 +98,24 @@ function handelRequest(url, clientId) {
       // check cache
       getFromCache(hash).then(cacheResponse => {
         console.log('cacheResponse ', cacheResponse);
-        if (cacheResponse) {
+        if (cacheResponse)
           resolve(cacheResponse);
-        } else {
-          // check peers
-          getFromClient(clientId, hash).then(peerResponse => {
-            console.log('peerResponse ', peerResponse);
-            if (peerResponse) {
-              putIntoCache(hash, peerResponse);
-              notifyPeers(hash, clientId);
-              resolve(peerResponse);
-            } else {
-              // get from the internet
-              getFromInternet(url).then(response => {
-                console.log('internet response ', response);
-                putIntoCache(hash, response);
-                notifyPeers(hash, clientId);
-                resolve(response);
-              });
-            }
+        // check peers
+        getFromClient(clientId, hash).then(peerResponse => {
+          console.log('peerResponse ', peerResponse);
+          if (peerResponse) {
+            putIntoCache(hash, peerResponse);
+            notifyPeers(hash, clientId);
+            resolve(peerResponse);
+          }
+          // get from the internet
+          getFromInternet(url).then(response => {
+            console.log('internet response ', response);
+            putIntoCache(hash, response);
+            notifyPeers(hash, clientId);
+            resolve(response);
           });
-        }
+        });
       });
     });
   });
