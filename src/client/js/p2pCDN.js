@@ -14,7 +14,7 @@ const signaling = new Signaling();
 const peer = new Peer(signaling.send.bind(signaling), STUN_SERVER);
 const serviceWorkerMiddleware = new ServiceWorkerMiddleware();
 
-// Setting up middleware
+// Setting up request rooting
 signaling.onReceivedPeerId = peerId => {
   peer.peerId = peerId;
 };
@@ -28,7 +28,7 @@ signaling.onClosed = peerId => {
 };
 
 signaling.onMessage = (from, message) => {
-  peer.messageCallback(from, message);
+  peer.receiveSignalMessage(from, message);
 };
 
 serviceWorkerMiddleware.onRequest = (hash, cb) => {

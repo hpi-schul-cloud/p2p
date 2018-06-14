@@ -34,10 +34,6 @@ class Peer {
     return this.peers.map(p => p.id).indexOf(peerId);
   }
 
-  _peerExists(peerId) {
-    return this._getPeerIdx(peerId) >= 0;
-  }
-
   _getPeer(peerId) {
     let idx = -1;
 
@@ -51,17 +47,6 @@ class Peer {
     if (idx >= 0)
       return this.peers[idx];
     return undefined;
-  }
-
-  _onLocalSessionCreated(peerId, desc) {
-    this.log('local session created: %o', desc);
-
-    const peer = this._getPeer(peerId);
-
-    peer.con.setLocalDescription(desc).then(() => {
-      this.log('sending local desc: %o', peer.con.localDescription);
-      this.signal(peer.id, peer.con.localDescription);
-    });
   }
 
   _getRequestId(from, hash) {
@@ -94,6 +79,79 @@ class Peer {
     }
   }
 
+  _onLocalSessionCreated(peerId, desc) {
+    this.log('local session created: %o', desc);
+
+    const peer = this._getPeer(peerId);
+
+    peer.con.setLocalDescription(desc).then(() => {
+      this.log('sending local desc: %o', peer.con.localDescription);
+      this.signal(peer.id, peer.con.localDescription);
+    });
+  }
+
+  _sendViaDataChannel(peer, message) {
+    switch (peer.dataChannel.readyState) {
+      case 'connecting':
+        this.log('connection not open; queueing: %s', message);
+        peer.requestQueue.push(message);
+        break;
+      case 'open':
+        if (peer.requestQueue.length === 0) {
+          peer.dataChannel.send(message);
+        } else {
+          peer.requestQueue.forEach(msg => peer.dataChannel.send(msg));
+          peer.requestQueue = [];
+        }
+        break;
+      case 'closing':
+        this.log('attempted to send message while closing: %s', message);
+        break;
+      case 'closed':
+        this.log('attempted to send while connection closed: %s', message);
+        break;
+    }
+  }
+
+  _sendToPeer(peer, msgType, hash, dataAb = undefined) {
+    const typeAb = strToAb(msgType);
+    const fromAb = strToAb(this.peerId);
+    const hashAb = strToAb(hash);
+
+    let msg;
+    if (dataAb) {
+      msg = concatAbs([typeAb, fromAb, hashAb, dataAb]);
+    } else {
+      msg = concatAbs([typeAb, fromAb, hashAb]);
+    }
+
+    this._sendViaDataChannel(peer, msg);
+  }
+
+  _requestPeer(peer, msgType, hash, cb) {
+    const request = { from: peer.id, hash: hash, chunks: [], respond: cb };
+
+    this.log('send request to peer %s', peer.id);
+    this._sendToPeer(peer, msgType, hash);
+    this.requests.push(request);
+  }
+
+  _setDiscoveredResources() {
+    this.discoveredPeers.map(discoveredPeer => {
+      const peerId = discoveredPeer.id;
+      const connectedPeer = this._getPeer(peerId);
+
+      if(connectedPeer){
+        discoveredPeer.resources.map(r => {
+          if (connectedPeer.resources.indexOf(r) === -1) {
+            this.log('set resource %s of connected peer %s', r, peerId);
+            connectedPeer.resources.push(r);
+          }
+        });
+      }
+    });
+  }
+
   _discoverPeers() {
     if(this.discover){
       let i = 0;
@@ -118,7 +176,7 @@ class Peer {
               }
             });
           });
-          // at least on successfully requested
+          // at least one requested successfully
           this.discover = false;
         }
         i +=1;
@@ -126,21 +184,60 @@ class Peer {
     }
   }
 
-  _setDiscoveredResources() {
-    this.discoveredPeers.map(discoveredPeer => {
-      const peerId = discoveredPeer.id;
+  _abToMessage(ab) {
+    const message = {
+      type: null,
+      from: null,
+      hash: null,
+      chunkId: null,
+      chunkCount: null,
+      data: null,
+    };
 
-      if(this._peerExists(peerId)){
-        const connectedPeer = this._getPeer(peerId);
+    // Get type
+    let chunkStart = 0;
+    let chunkEnd = this.message.sizes.type;
+    const typeAb = new Uint8Array(ab.slice(chunkStart, chunkEnd));
 
-        discoveredPeer.resources.map(r => {
-          if (connectedPeer.resources.indexOf(r) === -1) {
-            this.log('set resource %s of connected peer %s', r, peerId);
-            connectedPeer.resources.push(r);
-          }
-        });
-      }
-    });
+    // Get from
+    chunkStart = chunkEnd;
+    chunkEnd += this.message.sizes.peerId;
+    const fromAb = new Uint8Array(ab.slice(chunkStart, chunkEnd));
+
+    // Get hash
+    chunkStart = chunkEnd;
+    chunkEnd += this.message.sizes.hash;
+    const resourceAb = new Uint8Array(ab.slice(chunkStart, chunkEnd));
+
+    message.type = parseInt(abToStr(typeAb));
+    message.from = abToStr(fromAb);
+    message.hash = abToStr(resourceAb);
+
+    // Get chunk
+    if (message.type === this.message.types.chunk) {
+      // Get chunkId
+      chunkStart = chunkEnd;
+      chunkEnd += this.message.sizes.chunkId;
+      const chunkIdAb = new Uint8Array(ab.slice(chunkStart, chunkEnd));
+
+      // Get chunkCount
+      chunkStart = chunkEnd;
+      chunkEnd += this.message.sizes.chunkCount;
+      const chunkCountAb = new Uint8Array(ab.slice(chunkStart, chunkEnd));
+
+      chunkStart = chunkEnd;
+      message.data = new Uint8Array(ab.slice(chunkStart));
+      message.chunkId = parseInt(abToStr(chunkIdAb));
+      message.chunkCount = parseInt(abToStr(chunkCountAb));
+    }
+
+    // Get answer
+    if (message.type === this.message.types.answer) {
+      chunkStart = chunkEnd;
+      message.data = new Uint8Array(ab.slice(chunkStart));
+    }
+
+    return message;
   }
 
   _handleDiscovery(message) {
@@ -199,207 +296,6 @@ class Peer {
     } else {
       this.log('error, could not find response!?');
     }
-  }
-
-  _onDataChannelCreated(channel) {
-    this.log('onDataChannelCreated: %o', channel);
-
-    channel.binaryType = 'arraybuffer';
-
-    channel.onopen = () => {
-      this.log('data channel opened');
-      this._discoverPeers();
-    };
-
-    channel.onclose = () => {
-      this.log('data channel closed');
-    };
-
-    channel.onmessage = event => {
-      this.log('received message: %o', event);
-      const message = this._abToMessage(event.data);
-      const types =  this.message.types;
-
-      this.log('encoded array buffer %o', message);
-
-      switch (message.type) {
-        case types.discover:
-          this._handleDiscovery(message);
-          break;
-        case types.update:
-          this._handleUpdate(message);
-          break;
-        case types.request:
-          this.onRequested(message.hash, responseAb => {
-            this._handleResponse(message, responseAb);
-          });
-          break;
-        case types.chunk:
-          this._handleChunk(message);
-          break;
-        case types.answer:
-          this._handleAnswer(message);
-          break;
-      }
-    };
-  }
-
-  _sendViaDataChannel(peer, message) {
-    switch (peer.dataChannel.readyState) {
-      case 'connecting':
-        this.log('connection not open; queueing: %s', message);
-        peer.requestQueue.push(message);
-        break;
-      case 'open':
-        if (peer.requestQueue.length === 0) {
-          peer.dataChannel.send(message);
-        } else {
-          peer.requestQueue.forEach(msg => peer.dataChannel.send(msg));
-          peer.requestQueue = [];
-        }
-        break;
-      case 'closing':
-        this.log('attempted to send message while closing: %s', message);
-        break;
-      case 'closed':
-        this.log('attempted to send while connection closed: %s', message);
-        break;
-    }
-  }
-
-  connectTo(peerID, isInitiator = true) {
-    this.log('creating connection as initiator? %s', isInitiator);
-
-    const peer = {
-      id: peerID,
-      con: new RTCPeerConnection(this.stunServer),
-      dataChannel: null,
-      resources: [],
-      requestQueue: [],
-    };
-
-    this.peers.push(peer);
-
-    peer.con.onclose = this.onClose;
-    peer.con.onicecandidate = event => {
-      this.log('icecandidate event: %o', event);
-
-      if (event.candidate) {
-        this.signal(peer.id, {
-              type: 'candidate',
-              label: event.candidate.sdpMLineIndex,
-              id: event.candidate.sdpMid,
-              candidate: event.candidate.candidate,
-            }
-        );
-      }
-    };
-
-    if (isInitiator) {
-      this.log('creating data channel');
-
-      peer.dataChannel = peer.con.createDataChannel('data');
-      this._onDataChannelCreated(peer.dataChannel);
-
-      this.log('creating an offer');
-
-      peer.con.createOffer().then(desc => {
-        this._onLocalSessionCreated(peer.id, desc);
-      });
-    } else {
-      this.discover = true;
-      peer.con.ondatachannel = event => {
-        this.log('ondatachannel: %o', event.channel);
-
-        peer.dataChannel = event.channel;
-        this._onDataChannelCreated(peer.dataChannel);
-      };
-    }
-  }
-
-  messageCallback(peerId, message) {
-    const peerExists = this._peerExists(peerId);
-
-    if (!peerExists) {
-      this.connectTo(peerId, false);
-    }
-
-    const peer = this._getPeer(peerId);
-
-    if (message.type === 'offer') {
-      this.log('Got offer. Sending answer to peer.');
-      peer.con.setRemoteDescription(message).then(() => {
-        peer.con.createAnswer().then(desc => {
-          this._onLocalSessionCreated(peer.id, desc);
-        });
-      });
-
-    } else if (message.type === 'answer') {
-      this.log('Got answer.');
-      peer.con.setRemoteDescription(message);
-
-    } else if (message.type === 'candidate') {
-      peer.con.addIceCandidate(message).then(() => {
-        this.log('Set addIceCandidate successfully');
-      }).catch(e => this.log('error: %o', e));
-
-    }
-  }
-
-  _abToMessage(ab) {
-    const message = {
-      type: null,
-      from: null,
-      hash: null,
-      chunkId: null,
-      chunkCount: null,
-      data: null,
-    };
-
-    // Get type
-    let chunkStart = 0;
-    let chunkEnd = this.message.sizes.type;
-    const typeAb = new Uint8Array(ab.slice(chunkStart, chunkEnd));
-
-    // Get from
-    chunkStart = chunkEnd;
-    chunkEnd += this.message.sizes.peerId;
-    const fromAb = new Uint8Array(ab.slice(chunkStart, chunkEnd));
-
-    // Get hash
-    chunkStart = chunkEnd;
-    chunkEnd += this.message.sizes.hash;
-    const resourceAb = new Uint8Array(ab.slice(chunkStart, chunkEnd));
-
-    message.type = parseInt(abToStr(typeAb));
-    message.from = abToStr(fromAb);
-    message.hash = abToStr(resourceAb);
-
-    // Get chunk
-    if (message.type === this.message.types.chunk) {
-      // Get chunkId
-      chunkStart = chunkEnd;
-      chunkEnd += this.message.sizes.chunkId;
-      const chunkIdAb = new Uint8Array(ab.slice(chunkStart, chunkEnd));
-
-      // Get chunkCount
-      chunkStart = chunkEnd;
-      chunkEnd += this.message.sizes.chunkCount;
-      const chunkCountAb = new Uint8Array(ab.slice(chunkStart, chunkEnd));
-
-      chunkStart = chunkEnd;
-      message.data = new Uint8Array(ab.slice(chunkStart));
-      message.chunkId = parseInt(abToStr(chunkIdAb));
-      message.chunkCount = parseInt(abToStr(chunkCountAb));
-    }
-
-    // Get answer
-    if (message.type === this.message.types.answer) {
-      chunkStart = chunkEnd;
-      message.data = new Uint8Array(ab.slice(chunkStart));
-    }
-
-    return message;
   }
 
   _sendChunkedToPeer(peer, hash, dataAb) {
@@ -464,26 +360,132 @@ class Peer {
     return concatAbs(chunks.map(c => c.data));
   }
 
-  _sendToPeer(peer, msgType, hash, dataAb = undefined) {
-    const typeAb = strToAb(msgType);
-    const fromAb = strToAb(this.peerId);
-    const hashAb = strToAb(hash);
+  _onDataChannelCreated(channel) {
+    this.log('onDataChannelCreated: %o', channel);
 
-    let msg;
-    if (dataAb) {
-      msg = concatAbs([typeAb, fromAb, hashAb, dataAb]);
+    channel.binaryType = 'arraybuffer';
+
+    channel.onopen = () => {
+      this.log('data channel opened');
+      this._discoverPeers();
+    };
+
+    channel.onclose = () => {
+      this.log('data channel closed');
+    };
+
+    channel.onmessage = event => {
+      this.log('received message: %o', event);
+      const message = this._abToMessage(event.data);
+      const types =  this.message.types;
+
+      this.log('encoded array buffer %o', message);
+
+      switch (message.type) {
+        case types.discover:
+          this._handleDiscovery(message);
+          break;
+        case types.update:
+          this._handleUpdate(message);
+          break;
+        case types.request:
+          this.onRequested(message.hash, responseAb => {
+            this._handleResponse(message, responseAb);
+          });
+          break;
+        case types.chunk:
+          this._handleChunk(message);
+          break;
+        case types.answer:
+          this._handleAnswer(message);
+          break;
+      }
+    };
+  }
+
+  connectTo(peerID, isInitiator = true) {
+    this.log('creating connection as initiator? %s', isInitiator);
+
+    const peer = {
+      id: peerID,
+      con: new RTCPeerConnection(this.stunServer),
+      dataChannel: null,
+      resources: [],
+      requestQueue: [],
+    };
+
+    this.peers.push(peer);
+
+    peer.con.onclose = this.onClose;
+    peer.con.onicecandidate = event => {
+      this.log('icecandidate event: %o', event);
+
+      if (event.candidate) {
+        this.signal(peer.id, {
+              type: 'candidate',
+              label: event.candidate.sdpMLineIndex,
+              id: event.candidate.sdpMid,
+              candidate: event.candidate.candidate,
+            }
+        );
+      }
+    };
+
+    if (isInitiator) {
+      this.log('creating data channel');
+
+      peer.dataChannel = peer.con.createDataChannel('data');
+      this._onDataChannelCreated(peer.dataChannel);
+
+      this.log('creating an offer');
+
+      peer.con.createOffer().then(desc => {
+        this._onLocalSessionCreated(peer.id, desc);
+      });
     } else {
-      msg = concatAbs([typeAb, fromAb, hashAb]);
+      this.discover = true;
+      peer.con.ondatachannel = event => {
+        this.log('ondatachannel: %o', event.channel);
+
+        peer.dataChannel = event.channel;
+        this._onDataChannelCreated(peer.dataChannel);
+      };
+    }
+  }
+
+  receiveSignalMessage(peerId, message) {
+    let peer = this._getPeer(peerId);
+
+    if (!peer) {
+      this.connectTo(peerId, false);
+      peer = this._getPeer(peerId);
     }
 
-    this._sendViaDataChannel(peer, msg);
+    if (message.type === 'offer') {
+      this.log('Got offer. Sending answer to peer.');
+      peer.con.setRemoteDescription(message).then(() => {
+        peer.con.createAnswer().then(desc => {
+          this._onLocalSessionCreated(peer.id, desc);
+        });
+      });
+
+    } else if (message.type === 'answer') {
+      this.log('Got answer.');
+      peer.con.setRemoteDescription(message);
+
+    } else if (message.type === 'candidate') {
+      peer.con.addIceCandidate(message).then(() => {
+        this.log('Set addIceCandidate successfully');
+      }).catch(e => this.log('error: %o', e));
+
+    }
   }
 
   removePeer(peerId) {
-    if (this._peerExists(peerId)) {
-      this.log('remove peer %s', peerId);
-      const idx = this._getPeerIdx(peerId);
+    const idx = this._getPeerIdx(peerId);
 
+    if (idx >= 0) {
+      this.log('remove peer %s', peerId);
       this.peers[idx].con.close();
       this.peers.splice(idx, 1);
 
@@ -492,6 +494,7 @@ class Peer {
         const req = this.requests[i];
 
         if(req.from === peerId){
+          this.log('remove pending request from %s', peerId);
           this.requests.splice(i, 1);
         } else {
           i += 1;
@@ -512,14 +515,6 @@ class Peer {
     }
   }
 
-  _requestPeer(peer, msgType, hash, cb) {
-    const request = { from: peer.id, hash: hash, chunks: [], respond: cb };
-
-    this.log('send request to peer %s', peer.id);
-    this._sendToPeer(peer, msgType, hash);
-    this.requests.push(request);
-  }
-
   requestResourceFromPeers(hash, cb) {
     this.log('try to find a peer for %s', hash);
     const peers = this.peers.filter(p => p.resources.indexOf(hash) >= 0);
@@ -536,5 +531,4 @@ class Peer {
       cb(undefined);
     }
   }
-
 }

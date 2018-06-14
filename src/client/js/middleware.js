@@ -39,7 +39,7 @@ class ServiceWorkerMiddleware {
           this.log('have received something: %s', response);
           event.ports[0].postMessage(response);
         };
-        this.onRequest(event.data, reply);
+        this.onRequest(event.data.hash, reply);
       } else {
         this.log('cant match request!');
       }
