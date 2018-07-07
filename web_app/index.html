@@ -37,11 +37,11 @@
           var conCount = document.getElementById("connections");
           var peersInfo = document.getElementById("peers");
 
-          conCount.innerHTML = 'Connections: ' + peers.length;
-          peersInfo.innerHTML = "Peers I'm connected to: </br>";
+          conCount.innerHTML = 'Connections: ' + peers.length + '</br>';
+          peersInfo.innerHTML = "";
           for (var i = 0; i < peers.length; i++){
             var peer = peers[i];
-            peersInfo.innerHTML += '&emsp; Id: ' + peer.id;
+            peersInfo.innerHTML += '&emsp; Id: ' + peer.id + ' &emsp; resources: ' + peer.resources.length  + '</br>';
             // could show ice candidates here
           }
         };

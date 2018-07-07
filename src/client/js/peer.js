@@ -91,7 +91,9 @@ class Peer {
   }
 
   _sendViaDataChannel(peer, message) {
-    switch (peer.dataChannel.readyState) {
+    const state = peer.dataChannel.readyState || 'connecting';
+
+    switch (state) {
       case 'connecting':
         this.log('connection not open; queueing: %s', message);
         peer.requestQueue.push(message);
@@ -156,7 +158,8 @@ class Peer {
     if(this.discover){
       let i = 0;
       while(i < this.discoverRequestCount && i < this.peers.length) {
-        const peer = this.peers[i];
+        const randomPeerId = Math.floor(Math.random() * this.peers.length);
+        const peer = this.peers[randomPeerId];
         const discoverType = this.message.types.discover;
         const timestamp = new Date().getTime().toString();
 
@@ -176,8 +179,8 @@ class Peer {
               }
             });
           });
-          // at least one requested successfully
-          this.discover = false;
+          this.discoverRequestCount -= 1;
+          this.discover = this.discoverRequestCount > 0;
         }
         i +=1;
       }
