@@ -16,6 +16,10 @@ class P2pCdn {
     this.peer = new Peer(this.signaling.send.bind(this.signaling), STUN_SERVER);
     this.serviceWorker = new ServiceWorkerMiddleware();
 
+    // frontend events
+    this.onPeerId = null;
+    this.onUpdate = null;
+
     this._dispatching();
 
     // Send handshake to server
@@ -25,26 +29,32 @@ class P2pCdn {
   _dispatching(){
     this.signaling.onReceivedPeerId = peerId => {
       this.peer.peerId = peerId;
+      this.onPeerId(peerId);
     };
 
     this.signaling.onNewPeerJoined = peerId => {
       this.peer.connectTo(peerId);
+      this.onUpdate(this.peer.peers);
     };
 
     this.signaling.onClosed = peerId => {
       this.peer.removePeer(peerId);
+      this.onUpdate(this.peer.peers);
     };
 
     this.signaling.onMessage = (from, message) => {
       this.peer.receiveSignalMessage(from, message);
+      this.onUpdate(this.peer.peers);
     };
 
     this.serviceWorker.onRequest = (hash, cb) => {
       this.peer.requestResourceFromPeers(hash, cb);
+      this.onUpdate(this.peer.peers);
     };
 
     this.serviceWorker.onUpdate = hash => {
       this.peer.updatePeers(hash);
+      this.onUpdate(this.peer.peers);
     };
 
     this.peer.onRequested = (hash, respond) => {

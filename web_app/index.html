@@ -15,22 +15,36 @@
 <body>
     <h1>OpenHPI: P2P CDN</h1>
     <div id="stats">
-        <p id="info"></p>
+        <p id="peerid"></p>
+        <p id="connections"></p>
+        <p id="peers"></p>
     </div>
 
     <p id="dataBig"></p>
     <p id="dataSmall"></p>
 
-    <!--<button id="btnStats">Stats</button>-->
     <button id="btnDataBig">Request big resource</button>
     <button id="btnDataSmall">Request small resource</button>
 
     <script>
-      // document.getElementById("btnStats").onclick = function(){
-      //   var doc = document.getElementById("info");
-      //   doc.innerHTML = 'My PeerId: ' + peer.peerId;
-      //   doc.innerHTML += '</br> Peer connections: ' + peer.peers.length;
-      // };
+        p2pCnd.onPeerId = function(peerId){
+          var id = document.getElementById("peerid");
+
+          id.innerHTML = 'PeerId: ' + peerId;
+        };
+
+        p2pCnd.onUpdate = function(peers) {
+          var conCount = document.getElementById("connections");
+          var peersInfo = document.getElementById("peers");
+
+          conCount.innerHTML = 'Connections: ' + peers.length;
+          peersInfo.innerHTML = "Peers I'm connected to: </br>";
+          for (var i = 0; i < peers.length; i++){
+            var peer = peers[i];
+            peersInfo.innerHTML += '&emsp; Id: ' + peer.id;
+            // could show ice candidates here
+          }
+        };
 
       document.getElementById("btnDataBig").onclick = function(){
         var doc = document.getElementById("dataBig");
