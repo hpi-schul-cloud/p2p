@@ -27,7 +27,7 @@ function sendMessageToClient(msg, clientID) {
   return new Promise(async function(resolve, reject) {
     const client = await clients.get(clientID);
     const msg_chan = new MessageChannel();
-    const timeout = 5000;
+    const timeout = 20000;
 
     let receivedResponse = false;
 
@@ -98,24 +98,27 @@ function handelRequest(url, clientId) {
       // check cache
       getFromCache(hash).then(cacheResponse => {
         console.log('cacheResponse ', cacheResponse);
-        if (cacheResponse)
+        if (cacheResponse) {
           resolve(cacheResponse);
-        // check peers
-        getFromClient(clientId, hash).then(peerResponse => {
-          console.log('peerResponse ', peerResponse);
-          if (peerResponse) {
-            putIntoCache(hash, peerResponse);
-            notifyPeers(hash, clientId);
-            resolve(peerResponse);
-          }
-          // get from the internet
-          getFromInternet(url).then(response => {
-            console.log('internet response ', response);
-            putIntoCache(hash, response);
-            notifyPeers(hash, clientId);
-            resolve(response);
+        } else {
+          // check peers
+          getFromClient(clientId, hash).then(peerResponse => {
+            console.log('peerResponse ', peerResponse);
+            if (peerResponse) {
+              putIntoCache(hash, peerResponse);
+              notifyPeers(hash, clientId);
+              resolve(peerResponse);
+            } else {
+              // get from the internet
+              getFromInternet(url).then(response => {
+                console.log('internet response ', response);
+                putIntoCache(hash, response);
+                notifyPeers(hash, clientId);
+                resolve(response);
+              });
+            }
           });
-        });
+        }
       });
     });
   });
@@ -124,8 +127,6 @@ function handelRequest(url, clientId) {
 self.addEventListener('fetch', function(event) {
   const request = event.request;
   const url = new URL(event.request.url);
-
-  console.log('try to fetch --> ', event.request.url);
 
   if (!urlsToCache.includes(url.pathname)) return;
   if (!event.clientId) return;
