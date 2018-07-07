@@ -6,15 +6,17 @@ class Peer {
 
     this.signal = signalFunction;
     this.stunServer = stunServer;
-    this.peerId = null;
-    this.onClose = null;
-    this.onRequested = null;
+    this.peerId = undefined;
+    this.onClose = undefined;
+    this.onRequested = undefined;
+    this.onUpdatePeers = undefined;
 
     this.peers = [];
     this.requests = [];
     this.resourceCache = [];
     this.discover = false;
     this.discoverRequestCount = 3;
+    this.discoverPeerIds = [];
     this.discoveredPeers = [];
 
     this.message = Object.freeze({
@@ -138,6 +140,14 @@ class Peer {
     this.requests.push(request);
   }
 
+  _addResource(peer, resource) {
+    peer.resources.push(resource);
+
+    if (typeof this.onUpdatePeers !== undefined){
+      this.onUpdatePeers(this.peers);
+    }
+  }
+
   _setDiscoveredResources() {
     this.discoveredPeers.map(discoveredPeer => {
       const peerId = discoveredPeer.id;
@@ -147,7 +157,7 @@ class Peer {
         discoveredPeer.resources.map(r => {
           if (connectedPeer.resources.indexOf(r) === -1) {
             this.log('set resource %s of connected peer %s', r, peerId);
-            connectedPeer.resources.push(r);
+            this._addResource(connectedPeer, r);
           }
         });
       }
@@ -162,9 +172,12 @@ class Peer {
         const peer = this.peers[randomPeerId];
         const discoverType = this.message.types.discover;
         const timestamp = new Date().getTime().toString();
+        const alreadyRequested = this.discoverPeerIds.indexOf(peer.id) >= 0;
 
-        if(peer.dataChannel) { // only to peers with dataChannel
+        // only to peers with dataChannel
+        if (peer.dataChannel && !alreadyRequested) {
           this.log('discover request to peer %s', peer.id);
+          this.discoverPeerIds.push(peer.id);
           sha256(timestamp).then(hash => {
             // request discovery
             this._requestPeer(peer, discoverType, hash, (peersAb) => {
@@ -265,7 +278,7 @@ class Peer {
       this.log('ERROR! Could not find peer!');
     } else {
       this.log('updated peer %s with resource %s', message.from, message.hash);
-      peer.resources.push(message.hash);
+      this._addResource(peer, message.hash)
     }
   }
 

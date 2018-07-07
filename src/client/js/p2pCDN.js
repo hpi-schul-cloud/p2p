@@ -57,6 +57,10 @@ class P2pCdn {
       this.onUpdate(this.peer.peers);
     };
 
+    this.peer.onUpdatePeers = peers => {
+      this.onUpdate(peers);
+    };
+
     this.peer.onRequested = (hash, respond) => {
       this.serviceWorker.messageToServiceWorker(hash).then(response => {
         respond(response);
