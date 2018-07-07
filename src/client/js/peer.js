@@ -375,11 +375,10 @@ class Peer {
     };
 
     channel.onmessage = event => {
-      this.log('received message: %o', event);
       const message = this._abToMessage(event.data);
       const types =  this.message.types;
 
-      this.log('encoded array buffer %o', message);
+      this.log('decoded message %o', message);
 
       switch (message.type) {
         case types.discover:
@@ -462,7 +461,7 @@ class Peer {
     }
 
     if (message.type === 'offer') {
-      this.log('Got offer. Sending answer to peer.');
+      this.log('Got offer %o. Sending answer to peer.', message);
       peer.con.setRemoteDescription(message).then(() => {
         peer.con.createAnswer().then(desc => {
           this._onLocalSessionCreated(peer.id, desc);
@@ -470,12 +469,12 @@ class Peer {
       });
 
     } else if (message.type === 'answer') {
-      this.log('Got answer.');
+      this.log('Got answer. %o', message);
       peer.con.setRemoteDescription(message);
 
     } else if (message.type === 'candidate') {
       peer.con.addIceCandidate(message).then(() => {
-        this.log('Set addIceCandidate successfully');
+        this.log('Set addIceCandidate successfully %o', message);
       }).catch(e => this.log('error: %o', e));
 
     }

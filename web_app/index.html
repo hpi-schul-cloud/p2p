@@ -14,20 +14,23 @@
 </head>
 <body>
     <h1>OpenHPI: P2P CDN</h1>
-    <p id="info"></p>
+    <div id="stats">
+        <p id="info"></p>
+    </div>
+
     <p id="dataBig"></p>
     <p id="dataSmall"></p>
 
-    <button id="btnStats">Stats</button>
+    <!--<button id="btnStats">Stats</button>-->
     <button id="btnDataBig">Request big resource</button>
     <button id="btnDataSmall">Request small resource</button>
 
     <script>
-      document.getElementById("btnStats").onclick = function(){
-        var doc = document.getElementById("info");
-        doc.innerHTML = 'My PeerId: ' + peer.peerId;
-        doc.innerHTML += '</br> Peer connections: ' + peer.peers.length;
-      };
+      // document.getElementById("btnStats").onclick = function(){
+      //   var doc = document.getElementById("info");
+      //   doc.innerHTML = 'My PeerId: ' + peer.peerId;
+      //   doc.innerHTML += '</br> Peer connections: ' + peer.peers.length;
+      // };
 
       document.getElementById("btnDataBig").onclick = function(){
         var doc = document.getElementById("dataBig");

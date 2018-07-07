@@ -1,7 +1,7 @@
 class Signaling {
 
   constructor() {
-    this.log = debug('openhpi:signaling');
+    this.log = debug('openhpi:client-signaling');
     this.log('setup');
 
     this.socket = io.connect();
@@ -48,7 +48,7 @@ class Signaling {
   }
 
   _onMessage(from, message) {
-    this.log('received message %s from %s', message, from);
+    this.log('received message %o from %s', message, from);
 
     this.onMessage(from, message);
   }
@@ -60,7 +60,7 @@ class Signaling {
   }
 
   send(to, message) {
-    this.log('send message %s to client %s', message, to);
+    this.log('send message %o to client %s', message, to);
 
     this.socket.emit('message', to, message);
   }

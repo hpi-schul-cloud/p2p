@@ -1,5 +1,5 @@
 const socketIO = require('socket.io');
-const debug = require('debug')('openhpi:signaling');
+const debug = require('debug')('openhpi:server-signaling');
 
 class ServerSignaling {
 

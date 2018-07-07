@@ -9,45 +9,54 @@ const STUN_SERVER = {
   ],
 };
 
-// Definition
-const signaling = new Signaling();
-const peer = new Peer(signaling.send.bind(signaling), STUN_SERVER);
-const serviceWorkerMiddleware = new ServiceWorkerMiddleware();
+class P2pCdn {
 
-// Setting up request rooting
-signaling.onReceivedPeerId = peerId => {
-  peer.peerId = peerId;
-};
+  constructor (){
+    this.signaling = new Signaling();
+    this.peer = new Peer(this.signaling.send.bind(this.signaling), STUN_SERVER);
+    this.serviceWorker = new ServiceWorkerMiddleware();
 
-signaling.onNewPeerJoined = peerId => {
-  peer.connectTo(peerId);
-};
+    this._dispatching();
 
-signaling.onClosed = peerId => {
-  peer.removePeer(peerId);
-};
+    // Send handshake to server
+    this.signaling.hello(channel);
+  }
 
-signaling.onMessage = (from, message) => {
-  peer.receiveSignalMessage(from, message);
-};
+  _dispatching(){
+    this.signaling.onReceivedPeerId = peerId => {
+      this.peer.peerId = peerId;
+    };
 
-serviceWorkerMiddleware.onRequest = (hash, cb) => {
-  peer.requestResourceFromPeers(hash, cb);
-};
+    this.signaling.onNewPeerJoined = peerId => {
+      this.peer.connectTo(peerId);
+    };
 
-serviceWorkerMiddleware.onUpdate = hash => {
-  peer.updatePeers(hash);
-};
+    this.signaling.onClosed = peerId => {
+      this.peer.removePeer(peerId);
+    };
 
-peer.onRequested = (hash, respond) => {
-  serviceWorkerMiddleware.messageToServiceWorker(hash).then(response => {
-    respond(response);
-  });
-};
+    this.signaling.onMessage = (from, message) => {
+      this.peer.receiveSignalMessage(from, message);
+    };
 
-window.onbeforeunload = () => {
-  signaling.close();
-};
+    this.serviceWorker.onRequest = (hash, cb) => {
+      this.peer.requestResourceFromPeers(hash, cb);
+    };
 
-// Send handshake to server
-signaling.hello(channel);
+    this.serviceWorker.onUpdate = hash => {
+      this.peer.updatePeers(hash);
+    };
+
+    this.peer.onRequested = (hash, respond) => {
+      this.serviceWorker.messageToServiceWorker(hash).then(response => {
+        respond(response);
+      });
+    };
+
+    window.onbeforeunload = () => {
+      this.signaling.close();
+    };
+  }
+}
+
+const p2pCnd = new P2pCdn();
