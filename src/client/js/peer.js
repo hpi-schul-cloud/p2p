@@ -16,8 +16,7 @@ class Peer {
     this.resourceCache = [];
     this.discover = false;
     this.discoverRequestCount = 3;
-    this.discoverPeerIds = [];
-    this.discoveredPeers = [];
+    this.discoveredPeerIds = [];
 
     this.message = Object.freeze({
       types: {discover: 1, update: 2, request: 3, chunk: 4, answer: 5},
@@ -148,8 +147,8 @@ class Peer {
     }
   }
 
-  _setDiscoveredResources() {
-    this.discoveredPeers.map(discoveredPeer => {
+  _setDiscoveredResources(discoveredPeers) {
+    discoveredPeers.map(discoveredPeer => {
       const peerId = discoveredPeer.id;
       const connectedPeer = this._getPeer(peerId);
 
@@ -172,23 +171,20 @@ class Peer {
         const peer = this.peers[randomPeerId];
         const discoverType = this.message.types.discover;
         const timestamp = new Date().getTime().toString();
-        const alreadyRequested = this.discoverPeerIds.indexOf(peer.id) >= 0;
+        const alreadyRequested = this.discoveredPeerIds.indexOf(peer.id) >= 0;
 
         // only to peers with dataChannel
         if (peer.dataChannel && !alreadyRequested) {
           this.log('discover request to peer %s', peer.id);
-          this.discoverPeerIds.push(peer.id);
+          this.discoveredPeerIds.push(peer.id);
           sha256(timestamp).then(hash => {
             // request discovery
             this._requestPeer(peer, discoverType, hash, (peersAb) => {
               const discoveredPeers = JSON.parse(abToStr(peersAb));
-              const setDiscovered = discoveredPeers.length > this.discoveredPeers.length;
-
               this.log('discovered peers %o from %s', discoveredPeers, peer.id);
 
-              if(setDiscovered){
-                this.discoveredPeers = discoveredPeers;
-                this._setDiscoveredResources();
+              if(discoveredPeers.length > 0){
+                this._setDiscoveredResources(discoveredPeers);
               }
               document.dispatchEvent(
                 new CustomEvent('p2pCDN:clientReady')
