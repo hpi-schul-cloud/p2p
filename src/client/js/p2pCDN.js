@@ -19,7 +19,6 @@ class P2pCdn {
 
       // frontend events
       this.onPeerId = null;
-      //this.onUpdate = function(peers) { console.log("onUpdate is not defined") };
 
       this._dispatching();
 

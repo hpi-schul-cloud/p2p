@@ -7,7 +7,6 @@
       document.addEventListener('p2pCDN:onPeerId', function(event){
         document.addEventListener('DOMContentLoaded', function(){
           var id = document.getElementById("peerid");
-          alert(event.detail)
           id.innerHTML = 'PeerId: ' + event.detail;
         }, false);
       });
