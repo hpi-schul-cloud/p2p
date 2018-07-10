@@ -10,6 +10,7 @@ class Peer {
     this.onClose = undefined;
     this.onRequested = undefined;
     this.onUpdatePeers = undefined;
+    this.onReady = undefined;
 
     this.peers = [];
     this.requests = [];
@@ -93,7 +94,7 @@ class Peer {
   }
 
   _sendViaDataChannel(peer, message) {
-    const state = peer.dataChannel.readyState || 'connecting';
+    const state = peer.dataChannel ? peer.dataChannel.readyState : 'connecting';
 
     switch (state) {
       case 'connecting':
@@ -198,6 +199,7 @@ class Peer {
         i +=1;
       }
     }
+    this.onReady();
   }
 
   _abToMessage(ab) {
@@ -269,6 +271,8 @@ class Peer {
     const discoveryAb = strToAb(JSON.stringify(discovery));
 
     this._handleResponse(message, discoveryAb);
+    this.onReady();
+
   }
 
   _handleUpdate(message) {
@@ -457,6 +461,7 @@ class Peer {
       peer.con.createOffer().then(desc => {
         this._onLocalSessionCreated(peer.id, desc);
       });
+
     } else {
       this.discover = true;
       peer.con.ondatachannel = event => {

@@ -12,18 +12,22 @@ const STUN_SERVER = {
 class P2pCdn {
 
   constructor (){
-    this.signaling = new Signaling();
-    this.peer = new Peer(this.signaling.send.bind(this.signaling), STUN_SERVER);
-    this.serviceWorker = new ServiceWorkerMiddleware();
+    try{
+      this.signaling = new Signaling();
+      this.peer = new Peer(this.signaling.send.bind(this.signaling), STUN_SERVER);
+      this.serviceWorker = new ServiceWorkerMiddleware();
 
-    // frontend events
-    this.onPeerId = null;
-    this.onUpdate = null;
+      // frontend events
+      this.onPeerId = null;
+      this.onUpdate = null;
 
-    this._dispatching();
+      this._dispatching();
 
-    // Send handshake to server
-    this.signaling.hello(channel);
+      // Send handshake to server
+      this.signaling.hello(channel);
+    } catch(e){
+      this.peer.onReady();
+    }
   }
 
   _dispatching(){
@@ -59,6 +63,11 @@ class P2pCdn {
 
     this.peer.onUpdatePeers = peers => {
       this.onUpdate(peers);
+    };
+
+    this.peer.onReady = () => {
+      const msg = { type: 'status', msg: 'ready' };
+      this.serviceWorker.messageToServiceWorker(msg)
     };
 
     this.peer.onRequested = (hash, respond) => {

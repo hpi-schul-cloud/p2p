@@ -1,5 +1,7 @@
 const CACHE_NAME = 'my-site-cache-v1';
 const version = '1.2.3';
+var clientState = {};
+var waitingLimit = 100;
 const urlsToCache = [
   '/img/fab.gif',
   '/img/logo.jpg',
@@ -8,14 +10,6 @@ const urlsToCache = [
 self.importScripts('/js/utils.js');
 
 self.addEventListener('install', function(event) {
-  // Perform install steps
-  // event.waitUntil(
-  //   caches.open(CACHE_NAME)
-  //     .then(function(cache) {
-  //       console.log('Opened cache');
-  //       return cache.addAll(urlsToCache);
-  //     })
-  // );
   event.waitUntil(self.skipWaiting()); // Activate worker immediately
 });
 
@@ -23,9 +17,27 @@ self.addEventListener('activate', function(event) {
   event.waitUntil(self.clients.claim()); // Become available to all pages
 });
 
+async function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function waitForClient(client, tryCount) {
+  if(waitingLimit === tryCount){
+    return false;
+  }
+  if (clientState[client.id] === 'ready'){
+    return true;
+  }
+  await sleep(200);
+  return waitForClient(client, tryCount + 1);
+};
+
 function sendMessageToClient(msg, clientID) {
   return new Promise(async function(resolve, reject) {
+
     const client = await clients.get(clientID);
+    await waitForClient(client, 0)
+
     const msg_chan = new MessageChannel();
     const timeout = 20000;
 
@@ -88,7 +100,7 @@ async function putIntoCache(key, response) {
 async function notifyPeers(hash, clientID) {
   const msg = {type: 'update', hash};
   const client = await clients.get(clientID);
-
+  await waitForClient(client);
   client.postMessage(msg);
 }
 
@@ -99,6 +111,7 @@ function handelRequest(url, clientId) {
       getFromCache(hash).then(cacheResponse => {
         console.log('cacheResponse ', cacheResponse);
         if (cacheResponse) {
+          notifyPeers(hash, clientId);
           resolve(cacheResponse);
         } else {
           // check peers
@@ -138,14 +151,18 @@ self.addEventListener('fetch', function(event) {
 });
 
 self.addEventListener('message', function(event) {
-  const hash = event.data;
+  if(event.data.msg === 'ready'){
+    clientState[event.source.id] = event.data.msg
+  } else{
+    const hash = event.data;
 
-  console.log('received request for ', hash);
-  getFromCache(hash).then(cacheResponse => {
-    console.log('cached object ', cacheResponse);
-    cacheResponse.arrayBuffer().then(buffer => {
-      console.log('got buffer ', buffer);
-      event.ports[0].postMessage(buffer, [buffer]);
+    console.log('received request for ', hash);
+    getFromCache(hash).then(cacheResponse => {
+      console.log('cached object ', cacheResponse);
+      cacheResponse.arrayBuffer().then(buffer => {
+        console.log('got buffer ', buffer);
+        event.ports[0].postMessage(buffer, [buffer]);
+      });
     });
-  });
+  }
 });

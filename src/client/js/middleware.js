@@ -25,6 +25,7 @@ class ServiceWorkerMiddleware {
         }
       });
       this._initListeners();
+
     }
   }
 
@@ -48,6 +49,9 @@ class ServiceWorkerMiddleware {
 
   messageToServiceWorker(msg) {
     return new Promise((resolve, reject) => {
+      if(!navigator.serviceWorker.controller){
+        reject("navigator.serviceWorker.controller is undefined")
+      }
       const msg_chan = new MessageChannel();
       // Handler for receiving message reply from service worker
       msg_chan.port1.onmessage = event => {
