@@ -2,10 +2,11 @@ const CACHE_NAME = 'my-site-cache-v1';
 const version = '1.2.3';
 var clientState = {};
 var waitingLimit = 100;
+const cachingEnabled = false;
 const urlsToCache = [
-  '/img/fab.gif',
-  '/img/logo.jpg',
-];
+  "/img/",
+  "/video/"
+].join("|");
 
 self.importScripts('/js/utils.js');
 
@@ -110,7 +111,7 @@ function handelRequest(url, clientId) {
       // check cache
       getFromCache(hash).then(cacheResponse => {
         console.log('cacheResponse ', cacheResponse);
-        if (cacheResponse) {
+        if (cacheResponse && cachingEnabled) {
           notifyPeers(hash, clientId);
           resolve(cacheResponse);
         } else {
@@ -141,7 +142,7 @@ self.addEventListener('fetch', function(event) {
   const request = event.request;
   const url = new URL(event.request.url);
 
-  if (!urlsToCache.includes(url.pathname)) return;
+  if(!new RegExp(urlsToCache, "gi").test(url.pathname)) return;
   if (!event.clientId) return;
   if (url.origin !== location.origin) return;
 
