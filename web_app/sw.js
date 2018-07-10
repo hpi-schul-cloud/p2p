@@ -2,7 +2,7 @@ const CACHE_NAME = 'my-site-cache-v1';
 const version = '1.2.3';
 var clientState = {};
 var waitingLimit = 100;
-const cachingEnabled = false;
+const cachingEnabled = true;
 const urlsToCache = [
   "/img/",
   "/video/"
@@ -35,13 +35,10 @@ async function waitForClient(client, tryCount) {
 
 function sendMessageToClient(msg, clientID) {
   return new Promise(async function(resolve, reject) {
-
     const client = await clients.get(clientID);
     await waitForClient(client, 0)
-
     const msg_chan = new MessageChannel();
     const timeout = 20000;
-
     let receivedResponse = false;
 
     // Handler for receiving message reply from service worker
@@ -105,7 +102,7 @@ async function notifyPeers(hash, clientID) {
   client.postMessage(msg);
 }
 
-function handelRequest(url, clientId) {
+function handleRequest(url, clientId) {
   return new Promise((resolve) => {
     sha256(url).then(hash => {
       // check cache
@@ -148,7 +145,7 @@ self.addEventListener('fetch', function(event) {
 
   console.log('fetch --> ', event.request.url);
 
-  event.respondWith(handelRequest(event.request.url, event.clientId));
+  event.respondWith(handleRequest(event.request.url, event.clientId));
 });
 
 self.addEventListener('message', function(event) {

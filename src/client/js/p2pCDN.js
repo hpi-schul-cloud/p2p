@@ -19,7 +19,7 @@ class P2pCdn {
 
       // frontend events
       this.onPeerId = null;
-      this.onUpdate = null;
+      //this.onUpdate = function(peers) { console.log("onUpdate is not defined") };
 
       this._dispatching();
 
@@ -31,38 +31,42 @@ class P2pCdn {
   }
 
   _dispatching(){
+    this.sendOnUpdate = () => {
+      document.dispatchEvent(new CustomEvent('p2pCDN:onUpdate', {detail: p2pCnd.peer.peers}));
+    }
+
     this.signaling.onReceivedPeerId = peerId => {
       this.peer.peerId = peerId;
-      this.onPeerId(peerId);
+      document.dispatchEvent(new CustomEvent('p2pCDN:onPeerId', {detail: peerId}))
     };
 
     this.signaling.onNewPeerJoined = peerId => {
       this.peer.connectTo(peerId);
-      this.onUpdate(this.peer.peers);
+      this.sendOnUpdate();
     };
 
     this.signaling.onClosed = peerId => {
       this.peer.removePeer(peerId);
-      this.onUpdate(this.peer.peers);
+      this.sendOnUpdate();
     };
 
     this.signaling.onMessage = (from, message) => {
       this.peer.receiveSignalMessage(from, message);
-      this.onUpdate(this.peer.peers);
+      this.sendOnUpdate();
     };
 
     this.serviceWorker.onRequest = (hash, cb) => {
       this.peer.requestResourceFromPeers(hash, cb);
-      this.onUpdate(this.peer.peers);
+      this.sendOnUpdate();
     };
 
     this.serviceWorker.onUpdate = hash => {
       this.peer.updatePeers(hash);
-      this.onUpdate(this.peer.peers);
+      this.sendOnUpdate();
     };
 
     this.peer.onUpdatePeers = peers => {
-      this.onUpdate(peers);
+      this.sendOnUpdate();
     };
 
     this.peer.onReady = () => {
