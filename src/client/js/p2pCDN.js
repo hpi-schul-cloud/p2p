@@ -12,31 +12,32 @@ const STUN_SERVER = {
 class P2pCdn {
 
   constructor (){
-    try{
-      this.signaling = new Signaling();
-      this.peer = new Peer(this.signaling.send.bind(this.signaling), STUN_SERVER);
-      this.serviceWorker = new ServiceWorkerMiddleware();
+    this.signaling = new Signaling();
 
-      // frontend events
-      this.onPeerId = null;
+    this.peer = new Peer(this.signaling.send.bind(this.signaling), STUN_SERVER);
+    this.serviceWorker = new ServiceWorkerMiddleware(this.peer);
 
-      this._dispatching();
+    // frontend events
+    this.onPeerId = null;
 
-      // Send handshake to server
-      this.signaling.hello(channel);
-    } catch(e){
-      this.peer.onReady();
-    }
+    this._dispatching();
+
+    // Send handshake to server
+    this.signaling.hello(channel);
   }
 
   _dispatching(){
     this.sendOnUpdate = () => {
-      document.dispatchEvent(new CustomEvent('p2pCDN:onUpdate', {detail: p2pCnd.peer.peers}));
+      document.dispatchEvent(
+        new CustomEvent('p2pCDN:onUpdate', {detail: p2pCnd.peer.peers})
+      );
     }
 
     this.signaling.onReceivedPeerId = peerId => {
       this.peer.peerId = peerId;
-      document.dispatchEvent(new CustomEvent('p2pCDN:onPeerId', {detail: peerId}))
+      document.dispatchEvent(
+        new CustomEvent('p2pCDN:onPeerId', {detail: peerId})
+      );
     };
 
     this.signaling.onNewPeerJoined = peerId => {
@@ -51,11 +52,6 @@ class P2pCdn {
 
     this.signaling.onMessage = (from, message) => {
       this.peer.receiveSignalMessage(from, message);
-      this.sendOnUpdate();
-    };
-
-    this.serviceWorker.onRequest = (hash, cb) => {
-      this.peer.requestResourceFromPeers(hash, cb);
       this.sendOnUpdate();
     };
 

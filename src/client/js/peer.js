@@ -10,7 +10,6 @@ class Peer {
     this.onClose = undefined;
     this.onRequested = undefined;
     this.onUpdatePeers = undefined;
-    this.onReady = undefined;
 
     this.peers = [];
     this.requests = [];
@@ -191,6 +190,9 @@ class Peer {
                 this.discoveredPeers = discoveredPeers;
                 this._setDiscoveredResources();
               }
+              document.dispatchEvent(
+                new CustomEvent('p2pCDN:clientReady')
+              );
             });
           });
           this.discoverRequestCount -= 1;
@@ -198,8 +200,8 @@ class Peer {
         }
         i +=1;
       }
+
     }
-    this.onReady();
   }
 
   _abToMessage(ab) {
@@ -262,7 +264,7 @@ class Peer {
     let discovery;
     if(this.resourceCache.length > 0){
       discovery = [{id: this.peerId, resources: this.resourceCache}];
-      this.resourceCache = [];
+      //this.resourceCache = [];
     } else {
       discovery = this.peers.map(p => {
         return {id: p.id, resources: p.resources}
@@ -271,8 +273,6 @@ class Peer {
     const discoveryAb = strToAb(JSON.stringify(discovery));
 
     this._handleResponse(message, discoveryAb);
-    this.onReady();
-
   }
 
   _handleUpdate(message) {

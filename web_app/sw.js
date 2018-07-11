@@ -1,8 +1,8 @@
 const CACHE_NAME = 'my-site-cache-v1';
 const version = '1.2.3';
 var clientState = {};
-var waitingLimit = 100;
-const cachingEnabled = true;
+var maxRetryCount = 300;
+const cachingEnabled = false;
 const urlsToCache = [
   "/img/",
   "/video/"
@@ -23,7 +23,7 @@ async function sleep(ms) {
 }
 
 async function waitForClient(client, tryCount) {
-  if(waitingLimit === tryCount){
+  if(maxRetryCount === tryCount){
     return false;
   }
   if (clientState[client.id] === 'ready'){
@@ -75,7 +75,6 @@ function getFromCache(key) {
 async function getFromClient(clientId, hash) {
   console.log('ask client to get: ', hash);
   const msg = {type: 'request', hash};
-
   const message = await sendMessageToClient(msg, clientId);
 
   if (message.data)
@@ -98,7 +97,7 @@ async function putIntoCache(key, response) {
 async function notifyPeers(hash, clientID) {
   const msg = {type: 'update', hash};
   const client = await clients.get(clientID);
-  await waitForClient(client);
+  //await waitForClient(client);
   client.postMessage(msg);
 }
 
@@ -138,8 +137,9 @@ function handleRequest(url, clientId) {
 self.addEventListener('fetch', function(event) {
   const request = event.request;
   const url = new URL(event.request.url);
-
+  console.log("received request: "+ url)
   if(!new RegExp(urlsToCache, "gi").test(url.pathname)) return;
+  console.log("sw handles request: "+ url)
   if (!event.clientId) return;
   if (url.origin !== location.origin) return;
 
