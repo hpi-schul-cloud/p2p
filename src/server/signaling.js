@@ -54,7 +54,6 @@ class ServerSignaling {
     const peerId = this._getClientId(socket);
 
     // todo: check if room has reached max members?
-
     socket.join(channel);
     this._joinPeer(socket, channel);
 

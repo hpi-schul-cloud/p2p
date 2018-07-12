@@ -1,11 +1,9 @@
 class ServiceWorkerMiddleware {
 
-  constructor() {
+  constructor(peer) {
     this.log = debug('openhpi:ServiceWorkerMiddleware');
     this.log('setup');
-
-    this.onRequest = null;
-    this.onUpdate = null;
+    this.peer = peer
     this._initServiceWorker();
   }
 
@@ -25,8 +23,23 @@ class ServiceWorkerMiddleware {
         }
       });
       this._initListeners();
+
     }
   }
+
+  onRequest(hash, cb) {
+    this.peer.requestResourceFromPeers(hash, cb);
+    document.dispatchEvent(
+      new CustomEvent('p2pCDN:onUpdate', {detail: this.peer.peers})
+    );
+  };
+
+  onUpdate(hash) {
+    this.peer.updatePeers(hash);
+    document.dispatchEvent(
+      new CustomEvent('p2pCDN:onUpdate', {detail: this.peer.peers})
+    );
+  };
 
   _initListeners() {
     navigator.serviceWorker.addEventListener('message', function(event) {
@@ -44,10 +57,20 @@ class ServiceWorkerMiddleware {
         this.log('cant match request!');
       }
     }.bind(this));
+    document.addEventListener('p2pCDN:clientReady', function(event){
+      const msg = { type: 'status', msg: 'ready' };
+      this.messageToServiceWorker(msg)
+    }.bind(this));
+
+
   }
 
   messageToServiceWorker(msg) {
     return new Promise((resolve, reject) => {
+      if(!navigator.serviceWorker.controller){
+        resolve(undefined);
+        return;
+      }
       const msg_chan = new MessageChannel();
       // Handler for receiving message reply from service worker
       msg_chan.port1.onmessage = event => {

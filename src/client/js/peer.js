@@ -93,7 +93,7 @@ class Peer {
   }
 
   _sendViaDataChannel(peer, message) {
-    const state = peer.dataChannel.readyState || 'connecting';
+    const state = peer.dataChannel ? peer.dataChannel.readyState : 'connecting';
 
     switch (state) {
       case 'connecting':
@@ -190,6 +190,9 @@ class Peer {
                 this.discoveredPeers = discoveredPeers;
                 this._setDiscoveredResources();
               }
+              document.dispatchEvent(
+                new CustomEvent('p2pCDN:clientReady')
+              );
             });
           });
           this.discoverRequestCount -= 1;
@@ -197,6 +200,7 @@ class Peer {
         }
         i +=1;
       }
+
     }
   }
 
@@ -260,7 +264,7 @@ class Peer {
     let discovery;
     if(this.resourceCache.length > 0){
       discovery = [{id: this.peerId, resources: this.resourceCache}];
-      this.resourceCache = [];
+      //this.resourceCache = [];
     } else {
       discovery = this.peers.map(p => {
         return {id: p.id, resources: p.resources}
@@ -457,6 +461,7 @@ class Peer {
       peer.con.createOffer().then(desc => {
         this._onLocalSessionCreated(peer.id, desc);
       });
+
     } else {
       this.discover = true;
       peer.con.ondatachannel = event => {

@@ -3,6 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <script>
+      document.addEventListener('p2pCDN:onPeerId', function(event){
+        document.addEventListener('DOMContentLoaded', function(){
+          var id = document.getElementById("peerid");
+          id.innerHTML = 'PeerId: ' + event.detail;
+        }, false);
+      });
+    </script>
+    <link href="https://vjs.zencdn.net/7.0.5/video-js.css" rel="stylesheet">
 
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -11,9 +20,24 @@
     <script src="js/utils.js"></script>
 
     <script src="js/p2pCDN.js"></script>
+
+    <script src="https://vjs.zencdn.net/7.0.5/video.js"></script>
 </head>
 <body>
     <h1>OpenHPI: P2P CDN</h1>
+    <img src="img/fab.gif" />
+    <video id="video"
+       class="video-js vjs-default-skin"
+       height="300"
+       width="600"
+       autoplay
+       controls>
+        <p>
+          Your browser doesn't support video. Please <a href="http://browsehappy.com/">upgrade your browser</a> to see the
+          example.
+        </p>
+        <source src="http://localhost:8080/video/example_video.m3u8" type="application/vnd.apple.mpegurl">
+    </video>
     <div id="stats">
         <p id="peerid"></p>
         <p id="connections"></p>
@@ -27,24 +51,19 @@
     <button id="btnDataSmall">Request small resource</button>
 
     <script>
-        p2pCnd.onPeerId = function(peerId){
-          var id = document.getElementById("peerid");
+      document.addEventListener('p2pCDN:onUpdate', function(event){
+        var peers = event.detail;
+        var conCount = document.getElementById("connections");
+        var peersInfo = document.getElementById("peers");
 
-          id.innerHTML = 'PeerId: ' + peerId;
-        };
-
-        p2pCnd.onUpdate = function(peers) {
-          var conCount = document.getElementById("connections");
-          var peersInfo = document.getElementById("peers");
-
-          conCount.innerHTML = 'Connections: ' + peers.length + '</br>';
-          peersInfo.innerHTML = "";
-          for (var i = 0; i < peers.length; i++){
-            var peer = peers[i];
-            peersInfo.innerHTML += '&emsp; Id: ' + peer.id + ' &emsp; resources: ' + peer.resources.length  + '</br>';
-            // could show ice candidates here
-          }
-        };
+        conCount.innerHTML = 'Connections: ' + peers.length + '</br>';
+        peersInfo.innerHTML = "";
+        for (var i = 0; i < peers.length; i++){
+          var peer = peers[i];
+          peersInfo.innerHTML += '&emsp; Id: ' + peer.id + ' &emsp; resources: ' + peer.resources.length  + '</br>';
+        // could show ice candidates here
+        }
+      });
 
       document.getElementById("btnDataBig").onclick = function(){
         var doc = document.getElementById("dataBig");
@@ -55,6 +74,9 @@
         var doc = document.getElementById("dataSmall");
         doc.innerHTML += '<img src="img/logo.jpg">';
       };
+
+      videojs(document.querySelector('video'));
+
     </script>
 
 </body>
