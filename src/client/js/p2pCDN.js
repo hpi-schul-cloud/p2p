@@ -69,8 +69,18 @@ class P2pCdn {
       this.serviceWorker.messageToServiceWorker(msg)
     };
 
+    this.peer.onCheckCache = respond => {
+      const msg = {type: "cache"};
+
+      this.serviceWorker.messageToServiceWorker(msg).then(cachedResouces => {
+        respond(cachedResouces);
+      });
+    };
+
     this.peer.onRequested = (hash, respond) => {
-      this.serviceWorker.messageToServiceWorker(hash).then(response => {
+      const msg = {type: "resource", resource: hash};
+
+      this.serviceWorker.messageToServiceWorker(msg).then(response => {
         respond(response);
       });
     };

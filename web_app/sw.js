@@ -1,7 +1,7 @@
 const CACHE_NAME = 'my-site-cache-v1';
 const version = '1.2.3';
-var clientState = {};
-var maxRetryCount = 300;
+const clientState = {};
+const maxRetryCount = 300;
 const cachingEnabled = false;
 const urlsToCache = [
   "/img/",
@@ -31,7 +31,7 @@ async function waitForClient(client, tryCount) {
   }
   await sleep(200);
   return waitForClient(client, tryCount + 1);
-};
+}
 
 function sendMessageToClient(msg, clientID) {
   return new Promise(async function(resolve, reject) {
@@ -64,6 +64,21 @@ function sendMessageToClient(msg, clientID) {
   });
 }
 
+function getCacheKeys() {
+  const result = [];
+
+  return caches.open(version).then(cache => {
+    return cache.keys().then(keys => {
+      keys.forEach(key => {
+        let url = key.url;
+        result.push(url.substr(url.lastIndexOf('/') + 1));
+      });
+
+      return result;
+    });
+  });
+}
+
 function getFromCache(key) {
   return caches.open(version).then(cache => {
     return cache.match(key).then(response => {
@@ -83,7 +98,9 @@ async function getFromClient(clientId, hash) {
 }
 
 function getFromInternet(url) {
-  return fetch(url);
+  return fetch(url).then(response => {
+    return response;
+  });
 }
 
 async function putIntoCache(key, response) {
@@ -97,7 +114,7 @@ async function putIntoCache(key, response) {
 async function notifyPeers(hash, clientID) {
   const msg = {type: 'update', hash};
   const client = await clients.get(clientID);
-  //await waitForClient(client);
+
   client.postMessage(msg);
 }
 
@@ -149,18 +166,21 @@ self.addEventListener('fetch', function(event) {
 });
 
 self.addEventListener('message', function(event) {
-  if(event.data.msg === 'ready'){
-    clientState[event.source.id] = event.data.msg
-  } else{
-    const hash = event.data;
+  if(event.data.msg === 'ready') {
+    const msg = event.data;
 
-    console.log('received request for ', hash);
-    getFromCache(hash).then(cacheResponse => {
-      console.log('cached object ', cacheResponse);
-      cacheResponse.arrayBuffer().then(buffer => {
-        console.log('got buffer ', buffer);
-        event.ports[0].postMessage(buffer, [buffer]);
+    if (msg.type === "cache") {
+      getCacheKeys().then(keys => {
+        event.ports[0].postMessage(keys);
       });
-    });
+    } else if (msg.type === "resource") {
+      getFromCache(msg.resource).then(cacheResponse => {
+        console.log('cached object ', cacheResponse);
+        cacheResponse.arrayBuffer().then(buffer => {
+          console.log('got buffer ', buffer);
+          event.ports[0].postMessage(buffer, [buffer]);
+        });
+      });
+    }
   }
 });

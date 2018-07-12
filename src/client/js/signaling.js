@@ -6,7 +6,6 @@ class Signaling {
     this.socket = io.connect(window.location.href, { forceNew: true });
 
     this._dispatcher();
-
   }
 
   _dispatcher() {

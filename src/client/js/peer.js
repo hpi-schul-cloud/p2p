@@ -9,14 +9,12 @@ class Peer {
     this.peerId = undefined;
     this.onClose = undefined;
     this.onRequested = undefined;
+    this.onCheckCache = undefined;
     this.onUpdatePeers = undefined;
 
     this.peers = [];
     this.requests = [];
-    this.resourceCache = [];
-    this.discover = false;
-    this.discoverRequestCount = 3;
-    this.discoveredPeerIds = [];
+    this.cacheNotification = [];
 
     this.message = Object.freeze({
       types: {discover: 1, update: 2, request: 3, chunk: 4, answer: 5},
@@ -147,56 +145,26 @@ class Peer {
     }
   }
 
-  _setDiscoveredResources(discoveredPeers) {
-    discoveredPeers.map(discoveredPeer => {
-      const peerId = discoveredPeer.id;
-      const connectedPeer = this._getPeer(peerId);
+  _checkCache() {
+    if (typeof this.onCheckCache === "function") {
+      this.onCheckCache(cachedResources => {
+        this.log('cached resources %o', cachedResources);
+        if (cachedResources.length > 0) {
+          this.peers.forEach(peer => {
+            const alreadySent = this.cacheNotification.indexOf(peer.id) >= 0;
 
-      if(connectedPeer){
-        discoveredPeer.resources.map(r => {
-          if (connectedPeer.resources.indexOf(r) === -1) {
-            this.log('set resource %s of connected peer %s', r, peerId);
-            this._addResource(connectedPeer, r);
-          }
-        });
-      }
-    });
-  }
-
-  _discoverPeers() {
-    if(this.discover){
-      let i = 0;
-      while(i < this.discoverRequestCount && i < this.peers.length) {
-        const randomPeerId = Math.floor(Math.random() * this.peers.length);
-        const peer = this.peers[randomPeerId];
-        const discoverType = this.message.types.discover;
-        const timestamp = new Date().getTime().toString();
-        const alreadyRequested = this.discoveredPeerIds.indexOf(peer.id) >= 0;
-
-        // only to peers with dataChannel
-        if (peer.dataChannel && !alreadyRequested) {
-          this.log('discover request to peer %s', peer.id);
-          this.discoveredPeerIds.push(peer.id);
-          sha256(timestamp).then(hash => {
-            // request discovery
-            this._requestPeer(peer, discoverType, hash, (peersAb) => {
-              const discoveredPeers = JSON.parse(abToStr(peersAb));
-              this.log('discovered peers %o from %s', discoveredPeers, peer.id);
-
-              if(discoveredPeers.length > 0){
-                this._setDiscoveredResources(discoveredPeers);
-              }
-              document.dispatchEvent(
-                new CustomEvent('p2pCDN:clientReady')
-              );
-            });
+            if (!alreadySent) {
+              cachedResources.forEach(hash => {
+                if(peer.dataChannel){
+                  this.log('update %s about cached resource %s', peer.id, hash);
+                  this.cacheNotification.push(peer.id);
+                  this._sendToPeer(peer, this.message.types.update, hash);
+                }
+              });
+            }
           });
-          this.discoverRequestCount -= 1;
-          this.discover = this.discoverRequestCount > 0;
         }
-        i +=1;
-      }
-
+      });
     }
   }
 
@@ -254,21 +222,6 @@ class Peer {
     }
 
     return message;
-  }
-
-  _handleDiscovery(message) {
-    let discovery;
-    if(this.resourceCache.length > 0){
-      discovery = [{id: this.peerId, resources: this.resourceCache}];
-      //this.resourceCache = [];
-    } else {
-      discovery = this.peers.map(p => {
-        return {id: p.id, resources: p.resources}
-      });
-    }
-    const discoveryAb = strToAb(JSON.stringify(discovery));
-
-    this._handleResponse(message, discoveryAb);
   }
 
   _handleUpdate(message) {
@@ -383,7 +336,8 @@ class Peer {
 
     channel.onopen = () => {
       this.log('data channel opened');
-      this._discoverPeers();
+      // this._discoverPeers();
+      this._checkCache();
     };
 
     channel.onclose = () => {
@@ -397,9 +351,9 @@ class Peer {
       this.log('decoded message %o', message);
 
       switch (message.type) {
-        case types.discover:
-          this._handleDiscovery(message);
-          break;
+        // case types.discover:
+        //   this._handleDiscovery(message);
+        //   break;
         case types.update:
           this._handleUpdate(message);
           break;
@@ -459,7 +413,7 @@ class Peer {
       });
 
     } else {
-      this.discover = true;
+      // this.discover = true;
       peer.con.ondatachannel = event => {
         this.log('ondatachannel: %o', event.channel);
 
@@ -520,10 +474,7 @@ class Peer {
   }
 
   updatePeers(hash) {
-    if(this.peers.length === 0) {
-      this.log('no peer connections, use resource cache for %s', hash);
-      this.resourceCache.push(hash);
-    } else {
+    if(this.peers.length > 0) {
       this.log('broadcast peers for %s', hash);
       this.peers.forEach(peer => {
         this._sendToPeer(peer, this.message.types.update, hash);
