@@ -66,7 +66,6 @@ class ServiceWorkerMiddleware {
   }
 
   messageToServiceWorker(msg) {
-    var _this = this;
     return new Promise((resolve, reject) => {
       if(!navigator.serviceWorker.controller){
         resolve(undefined);
