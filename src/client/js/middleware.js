@@ -29,14 +29,14 @@ class ServiceWorkerMiddleware {
     }
   }
 
-  onRequest(hash, cb) {
+  _onRequest(hash, cb) {
     this.peer.requestResourceFromPeers(hash, cb);
     document.dispatchEvent(
       new CustomEvent('p2pCDN:onUpdate', {detail: this.peer.peers})
     );
   }
 
-  onUpdate(hash) {
+  _onUpdate(hash) {
     this.peer.updatePeers(hash);
     document.dispatchEvent(
       new CustomEvent('p2pCDN:onUpdate', {detail: this.peer.peers})
@@ -47,14 +47,14 @@ class ServiceWorkerMiddleware {
     navigator.serviceWorker.addEventListener('message', function(event) {
       this.log('received request for: %o', event.data);
 
-      if(event.data.type === 'update'){
-        this.onUpdate(event.data.hash);
+      if (event.data.type === 'update') {
+        this._onUpdate(event.data.hash);
       } else if (event.data.type === 'request') {
         const reply = response => {
           this.log('have received something: %s', response);
           event.ports[0].postMessage(response);
         };
-        this.onRequest(event.data.hash, reply);
+        this._onRequest(event.data.hash, reply);
       } else {
         this.log('cant match request!');
       }
@@ -83,7 +83,7 @@ class ServiceWorkerMiddleware {
         }
       };
 
-      this.log('ask service worker for %s', msg);
+      this.log('ask service worker for %o', msg);
       // Send message to service worker along with port for reply
       navigator.serviceWorker.controller.postMessage(msg, [msg_chan.port2]);
     });

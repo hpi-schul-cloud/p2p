@@ -7,7 +7,7 @@ class Peer {
     this.signal = signalFunction;
     this.stunServer = stunServer;
     this.peerId = undefined;
-    this.onClose = undefined;
+
     this.onRequested = undefined;
     this.onCheckCache = undefined;
     this.onUpdatePeers = undefined;
@@ -17,7 +17,7 @@ class Peer {
     this.cacheNotification = [];
 
     this.message = Object.freeze({
-      types: {discover: 1, update: 2, request: 3, chunk: 4, answer: 5},
+      types: {update: 1, request: 2, chunk: 3, answer: 4},
       sizes: { // in byte
         type: 1,
         peerId: 24,
@@ -140,32 +140,33 @@ class Peer {
   _addResource(peer, resource) {
     peer.resources.push(resource);
 
-    if (typeof this.onUpdatePeers !== undefined){
+    if (typeof this.onUpdatePeers === "function"){
       this.onUpdatePeers(this.peers);
     }
   }
 
   _checkCache() {
-    if (typeof this.onCheckCache === "function") {
-      this.onCheckCache(cachedResources => {
-        this.log('cached resources %o', cachedResources);
-        if (cachedResources.length > 0) {
-          this.peers.forEach(peer => {
-            const alreadySent = this.cacheNotification.indexOf(peer.id) >= 0;
+    if (typeof this.onCheckCache !== "function")
+      return;
 
-            if (!alreadySent) {
-              cachedResources.forEach(hash => {
-                if(peer.dataChannel){
-                  this.log('update %s about cached resource %s', peer.id, hash);
-                  this.cacheNotification.push(peer.id);
-                  this._sendToPeer(peer, this.message.types.update, hash);
-                }
-              });
-            }
-          });
-        }
-      });
-    }
+    this.onCheckCache(cachedResources => {
+      this.log('cached resources %o', cachedResources);
+      if (cachedResources.length > 0) {
+        this.peers.forEach(peer => {
+          const alreadySent = this.cacheNotification.indexOf(peer.id) >= 0;
+
+          if (!alreadySent) {
+            cachedResources.forEach(hash => {
+              if (peer.dataChannel) {
+                this.log('update %s about cached resource %s', peer.id, hash);
+                this.cacheNotification.push(peer.id);
+                this._sendToPeer(peer, this.message.types.update, hash);
+              }
+            });
+          }
+        });
+      }
+    });
   }
 
   _abToMessage(ab) {
@@ -336,7 +337,6 @@ class Peer {
 
     channel.onopen = () => {
       this.log('data channel opened');
-      // this._discoverPeers();
       this._checkCache();
     };
 
@@ -351,9 +351,6 @@ class Peer {
       this.log('decoded message %o', message);
 
       switch (message.type) {
-        // case types.discover:
-        //   this._handleDiscovery(message);
-        //   break;
         case types.update:
           this._handleUpdate(message);
           break;
@@ -385,7 +382,6 @@ class Peer {
 
     this.peers.push(peer);
 
-    peer.con.onclose = this.onClose;
     peer.con.onicecandidate = event => {
       this.log('icecandidate event: %o', event);
 
@@ -413,7 +409,6 @@ class Peer {
       });
 
     } else {
-      // this.discover = true;
       peer.con.ondatachannel = event => {
         this.log('ondatachannel: %o', event.channel);
 

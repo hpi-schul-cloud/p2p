@@ -17,9 +17,6 @@ class P2pCdn {
     this.peer = new Peer(this.signaling.send.bind(this.signaling), STUN_SERVER);
     this.serviceWorker = new ServiceWorkerMiddleware(this.peer);
 
-    // frontend events
-    this.onPeerId = null;
-
     this._dispatching();
 
     // Send handshake to server
@@ -31,7 +28,7 @@ class P2pCdn {
       document.dispatchEvent(
         new CustomEvent('p2pCDN:onUpdate', {detail: p2pCnd.peer.peers})
       );
-    }
+    };
 
     this.signaling.onReceivedPeerId = peerId => {
       this.peer.peerId = peerId;
@@ -60,9 +57,7 @@ class P2pCdn {
       this.sendOnUpdate();
     };
 
-    this.peer.onUpdatePeers = peers => {
-      this.sendOnUpdate();
-    };
+    this.peer.onUpdatePeers = this.sendOnUpdate;
 
     this.peer.onReady = () => {
       const msg = { type: 'status', msg: 'ready' };
@@ -70,7 +65,7 @@ class P2pCdn {
     };
 
     this.peer.onCheckCache = respond => {
-      const msg = {type: "cache"};
+      const msg = { type: "cache" };
 
       this.serviceWorker.messageToServiceWorker(msg).then(cachedResouces => {
         respond(cachedResouces);
@@ -78,7 +73,7 @@ class P2pCdn {
     };
 
     this.peer.onRequested = (hash, respond) => {
-      const msg = {type: "resource", resource: hash};
+      const msg = { type: "resource", resource: hash };
 
       this.serviceWorker.messageToServiceWorker(msg).then(response => {
         respond(response);

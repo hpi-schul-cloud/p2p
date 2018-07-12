@@ -4,9 +4,9 @@ const clientState = {};
 const maxRetryCount = 300;
 const cachingEnabled = false;
 const urlsToCache = [
-  "/img/",
-  "/video/"
-].join("|");
+  '/img/',
+  '/video/',
+].join('|');
 
 self.importScripts('/js/utils.js');
 
@@ -23,20 +23,21 @@ async function sleep(ms) {
 }
 
 async function waitForClient(client, tryCount) {
-  if(maxRetryCount === tryCount){
+  if (maxRetryCount === tryCount) {
     return false;
   }
-  if (clientState[client.id] === 'ready'){
+  if (clientState[client.id] === 'ready') {
     return true;
   }
   await sleep(200);
+  console.log('wait for client');
   return waitForClient(client, tryCount + 1);
 }
 
 function sendMessageToClient(msg, clientID) {
   return new Promise(async function(resolve, reject) {
     const client = await clients.get(clientID);
-    await waitForClient(client, 0)
+    await waitForClient(client, 0);
     const msg_chan = new MessageChannel();
     const timeout = 20000;
     let receivedResponse = false;
@@ -154,9 +155,9 @@ function handleRequest(url, clientId) {
 self.addEventListener('fetch', function(event) {
   const request = event.request;
   const url = new URL(event.request.url);
-  console.log("received request: "+ url)
-  if(!new RegExp(urlsToCache, "gi").test(url.pathname)) return;
-  console.log("sw handles request: "+ url)
+  console.log('received request: ' + url);
+  if (!new RegExp(urlsToCache, 'gi').test(url.pathname)) return;
+  console.log('sw handles request: ' + url);
   if (!event.clientId) return;
   if (url.origin !== location.origin) return;
 
@@ -166,21 +167,21 @@ self.addEventListener('fetch', function(event) {
 });
 
 self.addEventListener('message', function(event) {
-  if(event.data.msg === 'ready') {
-    const msg = event.data;
+  const msg = event.data;
 
-    if (msg.type === "cache") {
-      getCacheKeys().then(keys => {
-        event.ports[0].postMessage(keys);
+  if (msg.type === 'status') {
+    clientState[event.source.id] = event.data.msg;
+  } else if (msg.type === 'cache') {
+    getCacheKeys().then(keys => {
+      event.ports[0].postMessage(keys);
+    });
+  } else if (msg.type === 'resource') {
+    getFromCache(msg.resource).then(cacheResponse => {
+      console.log('cached object ', cacheResponse);
+      cacheResponse.arrayBuffer().then(buffer => {
+        console.log('got buffer ', buffer);
+        event.ports[0].postMessage(buffer, [buffer]);
       });
-    } else if (msg.type === "resource") {
-      getFromCache(msg.resource).then(cacheResponse => {
-        console.log('cached object ', cacheResponse);
-        cacheResponse.arrayBuffer().then(buffer => {
-          console.log('got buffer ', buffer);
-          event.ports[0].postMessage(buffer, [buffer]);
-        });
-      });
-    }
+    });
   }
 });
