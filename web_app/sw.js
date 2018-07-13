@@ -155,9 +155,13 @@ function handleRequest(url, clientId) {
 self.addEventListener('fetch', function(event) {
   const request = event.request;
   const url = new URL(event.request.url);
+
   console.log('received request: ' + url);
+
   if (!new RegExp(urlsToCache, 'gi').test(url.pathname)) return;
+
   console.log('sw handles request: ' + url);
+
   if (!event.clientId) return;
   if (url.origin !== location.origin) return;
 

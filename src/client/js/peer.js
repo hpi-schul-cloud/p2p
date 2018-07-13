@@ -12,6 +12,8 @@ class Peer {
     this.onCheckCache = undefined;
     this.onUpdatePeers = undefined;
 
+    this._registerEvents();
+
     this.peers = [];
     this.requests = [];
     this.cacheNotification = [];
@@ -26,6 +28,33 @@ class Peer {
         chunkCount: 8,
         maxData: 65536,
       },
+    });
+  }
+
+  _uiUpdate() {
+    document.dispatchEvent(
+        new CustomEvent('ui:onUpdate', {detail: this.peers})
+    );
+  }
+
+  _registerEvents() {
+    document.addEventListener('peer:onReceiveId', event => {
+      this.peerId = event.detail;
+    });
+
+    document.addEventListener('peer:onNewConnection', event => {
+      this.connectTo(event.detail);
+      this._uiUpdate();
+    });
+
+    document.addEventListener('peer:onSignalingMessage', event => {
+      const msg = event.detail;
+      this.receiveSignalMessage(msg.peerId, msg.message)
+    });
+
+    document.addEventListener('peer:onClose', event => {
+      this.removePeer(event.detail);
+      this._uiUpdate();
     });
   }
 

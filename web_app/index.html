@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Title</title>
     <script>
-      document.addEventListener('p2pCDN:onPeerId', function(event){
+      document.addEventListener('ui:onPeerId', function(event){
         document.addEventListener('DOMContentLoaded', function(){
           var id = document.getElementById("peerid");
           id.innerHTML = 'PeerId: ' + event.detail;
@@ -51,7 +51,7 @@
     <button id="btnDataSmall">Request small resource</button>
 
     <script>
-      document.addEventListener('p2pCDN:onUpdate', function(event){
+      document.addEventListener('ui:onUpdate', function(event){
         var peers = event.detail;
         var conCount = document.getElementById("connections");
         var peersInfo = document.getElementById("peers");

@@ -30,28 +30,6 @@ class P2pCdn {
       );
     };
 
-    this.signaling.onReceivedPeerId = peerId => {
-      this.peer.peerId = peerId;
-      document.dispatchEvent(
-        new CustomEvent('p2pCDN:onPeerId', {detail: peerId})
-      );
-    };
-
-    this.signaling.onNewPeerJoined = peerId => {
-      this.peer.connectTo(peerId);
-      this.sendOnUpdate();
-    };
-
-    this.signaling.onClosed = peerId => {
-      this.peer.removePeer(peerId);
-      this.sendOnUpdate();
-    };
-
-    this.signaling.onMessage = (from, message) => {
-      this.peer.receiveSignalMessage(from, message);
-      this.sendOnUpdate();
-    };
-
     this.serviceWorker.onUpdate = hash => {
       this.peer.updatePeers(hash);
       this.sendOnUpdate();

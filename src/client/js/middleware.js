@@ -1,11 +1,9 @@
 class ServiceWorkerMiddleware {
 
-  constructor() {
+  constructor(peer) {
     this.log = debug('openhpi:ServiceWorkerMiddleware');
     this.log('setup');
-
-    this.onRequest = null;
-    this.onUpdate = null;
+    this.peer = peer;
     this._initServiceWorker();
   }
 
@@ -25,7 +23,6 @@ class ServiceWorkerMiddleware {
         }
       });
       this._initListeners();
-
     }
   }
 
@@ -62,7 +59,7 @@ class ServiceWorkerMiddleware {
 
     document.addEventListener('p2pCDN:clientReady', function(event){
       const msg = { type: 'status', msg: 'ready' };
-      this.messageToServiceWorker(msg)
+      this.messageToServiceWorker(msg);
     }.bind(this));
 
   }
