@@ -78,9 +78,6 @@ class Peer {
       this._updateUI();
     });
 
-    window.onbeforeunload = () => { // tmp fix
-      this.signaling.close();
-    };
   }
 
   _getPeerIdx(peerId) {
