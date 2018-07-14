@@ -1,19 +1,14 @@
 class Peer {
 
-  constructor(signalFunction, stunServer) {
+  constructor(channel, stunServer) {
     this.log = debug('openhpi:peer');
     this.log('setup');
 
-    this.signal = signalFunction;
+    this.signaling = new Signaling();
+    this.serviceWorker = new ServiceWorkerMiddleware();
+
     this.stunServer = stunServer;
     this.peerId = undefined;
-
-    this.onRequested = undefined;
-    this.onCheckCache = undefined;
-    this.onUpdatePeers = undefined;
-
-    this._registerEvents();
-
     this.peers = [];
     this.requests = [];
     this.cacheNotification = [];
@@ -29,33 +24,63 @@ class Peer {
         maxData: 65536,
       },
     });
+
+    this._registerEvents();
+
+    // Send handshake to server
+    this.signaling.hello(channel);
   }
 
-  _uiUpdate() {
+  _updateUI() {
     document.dispatchEvent(
-        new CustomEvent('ui:onUpdate', {detail: this.peers})
+        new CustomEvent('ui:onUpdate', {detail: {
+          peerId: this.peerId, peers: this.peers}
+        })
+    );
+  }
+
+  _updateSW() {
+    document.dispatchEvent(
+        new CustomEvent('sw:clientReady')
     );
   }
 
   _registerEvents() {
     document.addEventListener('peer:onReceiveId', event => {
       this.peerId = event.detail;
+      this._updateUI();
+      this._updateSW();
+    });
+
+    document.addEventListener('peer:onUpdatePeers', event => {
+      this.updatePeers(event.detail);
+      this._updateUI();
     });
 
     document.addEventListener('peer:onNewConnection', event => {
       this.connectTo(event.detail);
-      this._uiUpdate();
+      this._updateUI();
+    });
+
+    document.addEventListener('peer:onRequestResource', event => {
+      const msg = event.detail;
+      this.requestResourceFromPeers(msg.hash, msg.cb);
     });
 
     document.addEventListener('peer:onSignalingMessage', event => {
       const msg = event.detail;
       this.receiveSignalMessage(msg.peerId, msg.message)
+      this._updateUI();
     });
 
     document.addEventListener('peer:onClose', event => {
       this.removePeer(event.detail);
-      this._uiUpdate();
+      this._updateUI();
     });
+
+    window.onbeforeunload = () => { // tmp fix
+      this.signaling.close();
+    };
   }
 
   _getPeerIdx(peerId) {
@@ -114,7 +139,7 @@ class Peer {
 
     peer.con.setLocalDescription(desc).then(() => {
       this.log('sending local desc: %o', peer.con.localDescription);
-      this.signal(peer.id, peer.con.localDescription);
+      this.signaling.send(peer.id, peer.con.localDescription);
     });
   }
 
@@ -167,20 +192,16 @@ class Peer {
   }
 
   _addResource(peer, resource) {
-    peer.resources.push(resource);
-
-    if (typeof this.onUpdatePeers === "function"){
-      this.onUpdatePeers(this.peers);
+    if (peer.resources.indexOf(resource) === -1) {
+      peer.resources.push(resource);
+      this._updateUI();
     }
   }
 
   _checkCache() {
-    if (typeof this.onCheckCache !== "function")
-      return;
-
-    this.onCheckCache(cachedResources => {
+    const cb = cachedResources => {
       this.log('cached resources %o', cachedResources);
-      if (cachedResources.length > 0) {
+      if (cachedResources && cachedResources.length > 0) {
         this.peers.forEach(peer => {
           const alreadySent = this.cacheNotification.indexOf(peer.id) >= 0;
 
@@ -195,7 +216,10 @@ class Peer {
           }
         });
       }
-    });
+    };
+    document.dispatchEvent(
+        new CustomEvent('sw:onRequestCache', {detail: cb})
+    );
   }
 
   _abToMessage(ab) {
@@ -263,6 +287,18 @@ class Peer {
       this.log('updated peer %s with resource %s', message.from, message.hash);
       this._addResource(peer, message.hash)
     }
+  }
+
+  _handleRequest(message){
+    const cb = response => {
+      this._handleResponse(message, response);
+    };
+
+    document.dispatchEvent(
+        new CustomEvent('sw:onRequestResource', {detail: {
+            hash: message.hash, cb: cb}
+        })
+    );
   }
 
   _handleResponse(message, responseAb) {
@@ -384,9 +420,7 @@ class Peer {
           this._handleUpdate(message);
           break;
         case types.request:
-          this.onRequested(message.hash, responseAb => {
-            this._handleResponse(message, responseAb);
-          });
+          this._handleRequest(message);
           break;
         case types.chunk:
           this._handleChunk(message);
@@ -415,13 +449,12 @@ class Peer {
       this.log('icecandidate event: %o', event);
 
       if (event.candidate) {
-        this.signal(peer.id, {
+        this.signaling.send(peer.id, {
               type: 'candidate',
               label: event.candidate.sdpMLineIndex,
               id: event.candidate.sdpMid,
               candidate: event.candidate.candidate,
-            }
-        );
+        });
       }
     };
 

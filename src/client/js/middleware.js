@@ -1,9 +1,8 @@
 class ServiceWorkerMiddleware {
 
-  constructor(peer) {
+  constructor() {
     this.log = debug('openhpi:ServiceWorkerMiddleware');
     this.log('setup');
-    this.peer = peer;
     this._initServiceWorker();
   }
 
@@ -27,16 +26,16 @@ class ServiceWorkerMiddleware {
   }
 
   _onRequest(hash, cb) {
-    this.peer.requestResourceFromPeers(hash, cb);
+    const msg = {hash: hash, cb: cb};
+
     document.dispatchEvent(
-      new CustomEvent('p2pCDN:onUpdate', {detail: this.peer.peers})
+        new CustomEvent('peer:onRequestResource', {detail: msg})
     );
   }
 
   _onUpdate(hash) {
-    this.peer.updatePeers(hash);
     document.dispatchEvent(
-      new CustomEvent('p2pCDN:onUpdate', {detail: this.peer.peers})
+        new CustomEvent('peer:onUpdatePeers', {detail: hash})
     );
   }
 
@@ -57,11 +56,25 @@ class ServiceWorkerMiddleware {
       }
     }.bind(this));
 
-    document.addEventListener('p2pCDN:clientReady', function(event){
+    document.addEventListener('sw:clientReady', function(event){
       const msg = { type: 'status', msg: 'ready' };
       this.messageToServiceWorker(msg);
     }.bind(this));
 
+    document.addEventListener('sw:onRequestCache', function(event){
+      const msg = { type: "cache" };
+      this.messageToServiceWorker(msg).then(cachedResources => {
+        event.detail(cachedResources);
+      });
+    }.bind(this));
+
+    document.addEventListener('sw:onRequestResource', function(event){
+      const msg = { type: "resource", resource: event.detail.hash };
+
+      this.messageToServiceWorker(msg).then(resource => {
+        event.detail.cb(resource);
+      });
+    }.bind(this));
   }
 
   messageToServiceWorker(msg) {

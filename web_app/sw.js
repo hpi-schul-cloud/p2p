@@ -1,7 +1,8 @@
 const CACHE_NAME = 'my-site-cache-v1';
 const version = '1.2.3';
-const clientState = {};
-const maxRetryCount = 300;
+// const clientState = {};
+let hasClientConnection = false;
+// const maxRetryCount = 300;
 const cachingEnabled = false;
 const urlsToCache = [
   '/img/',
@@ -18,26 +19,30 @@ self.addEventListener('activate', function(event) {
   event.waitUntil(self.clients.claim()); // Become available to all pages
 });
 
-async function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+// async function sleep(ms) {
+//   return new Promise(resolve => setTimeout(resolve, ms));
+// }
+//
+// async function waitForClient(client, tryCount) {
+//   if (maxRetryCount === tryCount) {
+//     return false;
+//   }
+//   if (clientState[client.id] === 'ready') {
+//     return true;
+//   }
+//   await sleep(200);
+//   console.log('wait for client');
+//   return waitForClient(client, tryCount + 1);
+// }
 
-async function waitForClient(client, tryCount) {
-  if (maxRetryCount === tryCount) {
-    return false;
-  }
-  if (clientState[client.id] === 'ready') {
-    return true;
-  }
-  await sleep(200);
-  console.log('wait for client');
-  return waitForClient(client, tryCount + 1);
-}
+// function clientIsReady(client) {
+//   return clientState[client.id] === 'ready';
+// }
 
 function sendMessageToClient(msg, clientID) {
   return new Promise(async function(resolve, reject) {
     const client = await clients.get(clientID);
-    await waitForClient(client, 0);
+    // await waitForClient(client, 0);
     const msg_chan = new MessageChannel();
     const timeout = 20000;
     let receivedResponse = false;
@@ -89,12 +94,17 @@ function getFromCache(key) {
 }
 
 async function getFromClient(clientId, hash) {
-  console.log('ask client to get: ', hash);
-  const msg = {type: 'request', hash};
-  const message = await sendMessageToClient(msg, clientId);
 
-  if (message.data)
-    return new Response(message.data);
+  if(hasClientConnection){
+    console.log('ask client to get: ', hash);
+    const msg = {type: 'request', hash};
+    const message = await sendMessageToClient(msg, clientId);
+
+    if (message.data)
+      return new Response(message.data);
+  } else {
+    console.log('client not ready yet');
+  }
   return undefined;
 }
 
@@ -128,25 +138,25 @@ function handleRequest(url, clientId) {
         if (cacheResponse && cachingEnabled) {
           notifyPeers(hash, clientId);
           resolve(cacheResponse);
-        } else {
-          // check peers
-          getFromClient(clientId, hash).then(peerResponse => {
-            console.log('peerResponse ', peerResponse);
-            if (peerResponse) {
-              putIntoCache(hash, peerResponse);
-              notifyPeers(hash, clientId);
-              resolve(peerResponse);
-            } else {
-              // get from the internet
-              getFromInternet(url).then(response => {
-                console.log('internet response ', response);
-                putIntoCache(hash, response);
-                notifyPeers(hash, clientId);
-                resolve(response);
-              });
-            }
-          });
+          return;
         }
+        // check peers
+        getFromClient(clientId, hash).then(peerResponse => {
+          console.log('peerResponse ', peerResponse);
+          if (peerResponse) {
+            putIntoCache(hash, peerResponse);
+            notifyPeers(hash, clientId);
+            resolve(peerResponse);
+            return;
+          }
+          // get from the internet
+          getFromInternet(url).then(response => {
+            console.log('internet response ', response);
+            putIntoCache(hash, response);
+            notifyPeers(hash, clientId);
+            resolve(response);
+          });
+        });
       });
     });
   });
@@ -173,8 +183,8 @@ self.addEventListener('fetch', function(event) {
 self.addEventListener('message', function(event) {
   const msg = event.data;
 
-  if (msg.type === 'status') {
-    clientState[event.source.id] = event.data.msg;
+  if (msg.type === 'status' && msg.msg === 'ready') {
+    hasClientConnection = true;
   } else if (msg.type === 'cache') {
     getCacheKeys().then(keys => {
       event.ports[0].postMessage(keys);

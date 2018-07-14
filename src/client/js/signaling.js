@@ -4,7 +4,6 @@ class Signaling {
     this.log = debug('openhpi:client-signaling');
     this.log('setup');
     this.socket = io.connect(window.location.href, {forceNew: true});
-
     this._dispatcher();
   }
 
@@ -20,15 +19,7 @@ class Signaling {
     this.log('created channel %s, peerId %s', channel, peerId);
 
     document.dispatchEvent(
-        new CustomEvent('ui:onPeerId', {detail: peerId}),
-    );
-
-    document.dispatchEvent(
-        new CustomEvent('peer:onReceiveId', {detail: peerId}),
-    );
-
-    document.dispatchEvent(
-        new CustomEvent('p2pCDN:clientReady'),
+        new CustomEvent('peer:onReceiveId', {detail: peerId})
     );
   }
 
@@ -36,22 +27,14 @@ class Signaling {
     this.log('joined channel %s, peerId %s ', channel, peerId);
 
     document.dispatchEvent(
-        new CustomEvent('ui:onPeerId', {detail: peerId}),
-    );
-
-    document.dispatchEvent(
-        new CustomEvent('peer:onReceiveId', {detail: peerId}),
-    );
-
-    document.dispatchEvent(
-        new CustomEvent('p2pCDN:clientReady'),
+        new CustomEvent('peer:onReceiveId', {detail: peerId})
     );
   }
 
   _onReady(peerId) {
     this.log('client %s has been joined.', peerId);
     document.dispatchEvent(
-        new CustomEvent('peer:onNewConnection', {detail: peerId}),
+        new CustomEvent('peer:onNewConnection', {detail: peerId})
     );
   }
 
@@ -66,7 +49,7 @@ class Signaling {
   _onClosed(peerId) {
     this.log('peer %s closed connection', peerId);
     document.dispatchEvent(
-        new CustomEvent('peer:onClose', {detail: peerId}),
+        new CustomEvent('peer:onClose', {detail: peerId})
     );
   }
 
