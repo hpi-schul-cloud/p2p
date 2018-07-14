@@ -14,7 +14,7 @@ class Peer {
     this.cacheNotification = [];
 
     this.message = Object.freeze({
-      types: {update: 1, request: 2, chunk: 3, answer: 4},
+      types: {update: 1, request: 2, chunk: 3, response: 4},
       sizes: { // in byte
         type: 1,
         peerId: 24,
@@ -269,8 +269,8 @@ class Peer {
       message.chunkCount = parseInt(abToStr(chunkCountAb));
     }
 
-    // Get answer
-    if (message.type === this.message.types.answer) {
+    // Get response
+    if (message.type === this.message.types.response) {
       chunkStart = chunkEnd;
       message.data = new Uint8Array(ab.slice(chunkStart));
     }
@@ -305,7 +305,7 @@ class Peer {
     const peer = this._getPeer(message.from);
 
     if (responseAb.byteLength <= this.message.sizes.maxData) {
-      this._sendToPeer(peer, this.message.types.answer, message.hash, responseAb);
+      this._sendToPeer(peer, this.message.types.response, message.hash, responseAb);
     } else {
       this._sendChunkedToPeer(peer, message.hash, responseAb);
     }
@@ -425,7 +425,7 @@ class Peer {
         case types.chunk:
           this._handleChunk(message);
           break;
-        case types.answer:
+        case types.response:
           this._handleAnswer(message);
           break;
       }
