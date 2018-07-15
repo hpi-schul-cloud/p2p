@@ -63,8 +63,4 @@ class Signaling {
     this.socket.emit('message', to, message);
   }
 
-  close() {
-    this.log('close connection');
-    this.socket.emit('close');
-  }
 }
