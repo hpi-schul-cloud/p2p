@@ -2,7 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>OpenHPI - P2P CDN</title>
+
+    <style>
+        .button {
+            background-color: #e7e7e7;
+            border: none;
+            color: black;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+        }
+    </style>
+
     <link href="https://vjs.zencdn.net/7.0.5/video-js.css" rel="stylesheet">
 
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
@@ -14,80 +30,93 @@
     <script src="js/p2pCDN.js"></script>
 
     <script> // init
-        localStorage.debug = '*,-socket.io*,-engine*';
-        var CHANNEL = 'FIXED_CLASS_1';
-        var STUN_SERVER = {
-          'iceServers': [
-            {
-              'urls': 'stun:stun.l.google.com:19302',
-            },
-          ],
-        };
-        var peer = new Peer(CHANNEL, STUN_SERVER);
+    localStorage.debug = '*,-socket.io*,-engine*';
+    var CHANNEL = 'FIXED_CLASS_1';
+    var STUN_SERVER = {
+      'iceServers': [
+        {
+          'urls': 'stun:stun.l.google.com:19302',
+        },
+      ],
+    };
+    var peer = new Peer(CHANNEL, STUN_SERVER);
     </script>
-
 
     <script src="https://vjs.zencdn.net/7.0.5/video.js"></script>
 </head>
 <body>
-    <h1>OpenHPI: P2P CDN</h1>
-    <!--<img src="img/fab.gif" />-->
-    <video id="video"
-       class="video-js vjs-default-skin"
-       height="300"
-       width="600"
-       autoplay
-       controls>
-        <p>
-          Your browser doesn't support video.
-        </p>
-        <source src="/video/example_video.m3u8">
-    </video>
-    <div id="stats">
+<div style="float: left; width: 50%">
+    <h1>OpenHPI: P2P CDN - Demo</h1>
+
+    <p id="dataSmall" style="display: block"></p>
+
+    <div id="stats" style="display: block">
         <p id="peerid"></p>
         <p id="connections"></p>
         <p id="peers"></p>
     </div>
 
-    <p id="dataBig"></p>
-    <p id="dataSmall"></p>
+    <div style="display: block">
+        <button id="btnDataSmall" class="button">Small resource</button>
+        <button id="btnDataBig" class="button">Big resource</button>
+    </div>
 
-    <button id="btnDataBig">Request big resource</button>
-    <button id="btnDataSmall">Request small resource</button>
+</div>
 
-    <script>
-      document.addEventListener('ui:onUpdate', function(event){
-        if (!document.getElementById("peerid"))
-          return;
+<div style="float: right; width: 50%">
 
-        var peer = event.detail;
-        var id = document.getElementById("peerid");
-        var conCount = document.getElementById("connections");
-        var peersInfo = document.getElementById("peers");
+    <div style="float: left;">
+        <p id="dataBig" style="float: left"></p>
 
-        id.innerHTML = 'PeerId: ' + peer.peerId;
+        <div style="float: left">
+            <video id="video"
+                   class="video-js vjs-default-skin"
+                   height="220"
+                   width="380"
+                   controls>
+                <p>
+                    Your browser doesn't support video.
+                </p>
+                <source src="/video/example_video.m3u8">
+            </video>
+        </div>
+    </div>
 
-        conCount.innerHTML = 'Connections: ' + peer.peers.length + '</br>';
-        peersInfo.innerHTML = "";
-        for (var i = 0; i < peer.peers.length; i++){
-          var tmpPeer = peer.peers[i];
-          peersInfo.innerHTML += '&emsp; Id: ' + tmpPeer.id + ' &emsp; resources: ' + tmpPeer.resources.length  + '</br>';
-        }
-      });
+</div>
 
-      document.getElementById("btnDataBig").onclick = function(){
-        var doc = document.getElementById("dataBig");
-        doc.innerHTML += '<img src="img/fab.gif">';
-      };
+<script>
+  document.addEventListener('ui:onUpdate', function(event) {
+    if (!document.getElementById('peerid'))
+      return;
 
-      document.getElementById("btnDataSmall").onclick = function(){
-        var doc = document.getElementById("dataSmall");
-        doc.innerHTML += '<img src="img/logo.jpg">';
-      };
+    var peer = event.detail;
+    var id = document.getElementById('peerid');
+    var conCount = document.getElementById('connections');
+    var peersInfo = document.getElementById('peers');
 
-      videojs(document.querySelector('video'));
+    id.innerHTML = 'PeerId: ' + peer.peerId;
 
-    </script>
+    conCount.innerHTML = 'Connections: ' + peer.peers.length + '</br>';
+    peersInfo.innerHTML = '';
+    for (var i = 0; i < peer.peers.length; i++) {
+      var tmpPeer = peer.peers[i];
+      peersInfo.innerHTML += '&emsp; Id: ' + tmpPeer.id + ' &emsp; resources: ' + tmpPeer.resources.length + '</br>';
+    }
+  });
+
+  document.getElementById('btnDataBig').onclick = function() {
+    var doc = document.getElementById('dataBig');
+    doc.innerHTML += '<img style="height: 250px; width: auto;" src="img/fab.gif">';
+  };
+
+  document.getElementById('btnDataSmall').onclick = function() {
+    var doc = document.getElementById('dataSmall');
+    doc.innerHTML += '<img style="height: 60px; width: auto;" src="img/hpi.png">';
+  };
+
+  videojs(document.querySelector('video'));
+
+</script>
 
 </body>
 </html>
