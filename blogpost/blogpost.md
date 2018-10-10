@@ -38,9 +38,9 @@ Im linken (schwarzen) Fenster wird kontinuierlich überprüft, ob eine Internetv
 
 Im ersten Teil sieht man, wie ein Nutzer alle drei Ressourcen anfragt und darstellt. Zum Zeitpunkt *00:45* wird auf den Bildschirm eines zweiten Nutzers umgeschaltet. Auch hier wird links kontinuierlich die Internetanbindung geprüft. Der Nutzer fragt auch hier alle drei Ressourcen an. Diese werden allerdings nicht über das Internet geladen, sondern vom ersten Nutzer. 
 
-Das die Ressourcen wirklich über das lokale Netz geladen werden, sieht man ab *01:10*. Wie links zu sehen ist, besteht ab diesem Zeitpunkt keine Verbindung mehr zum Internet. Dennoch kann das Video abgespielt werden.  
+Dass die Ressourcen wirklich über das lokale Netz geladen werden, sieht man ab *01:10*. Wie links zu sehen ist, besteht ab diesem Zeitpunkt keine Verbindung mehr zum Internet. Dennoch kann das Video abgespielt werden.  
 
-ToDo: Hier Outro für non-techies!
+Durch unseren Prototypen zeigt sich, dass unsere grundlegende Idee umsetzbar ist und, dass das von uns vorgestellte Beispielszenario durchaus realistisch ist. Insbesondere zeigt der Prototyp: Für die Umsetzung ist keine Installation von zusätzlicher Software notwendig. Ebenfalls merkt der Nutzer nicht, dass die von ihm angefragten Ressourcen nicht aus dem Internet geladen werden.
 
 ## Technische Details
 Bezüglich der konkreten Implementation ergeben sich mehrere Fragen, auf die im Folgenden eingegangen wird. 
@@ -80,3 +80,11 @@ Client 1 (C1) ist der erste der die Webseite aufruft. Er registriert sich beim *
 Client 2 (C2) ruft nun ebenfalls die Webseite auf und registriert sich beim *Signaling server*. Dieser benachrichtigt C1, dass ein neuer Teilnehmer registriert wurde, woraufhin C1 einen Verbindungsaufbau zu C2 einleitet. Steht die direkte Verbindung zwischen C1 und C2, teilt C1 C2 den Inhalt seines aktuellen Caches mit. Fragt C2 *img.png* an, weiß er so, dass er diese von C1 anfragen kann. Hat er *img.png* erhalten, teilt er allen anderen Teilnehmern (in diesem Fall nur C1) mit, dass auch er jetzt *img.png* als Ressource in seinem Cache hat.
 
 Hier fehlt noch ein technischer Ausblick!
+- Integrität der Ressourcen (Verhindern: Verbreitung bösartige/manipulierte Inhalte)
+- Security: connection limits
+- Verteilung der Daten in großen Gruppen (vollständiger Graph, Baum, Ring, ... ?)
+- data serialization, limit 16kiB (wird evtl. geändert: SCTP ndata)
+- Evaluierung der Performance (Verbesserung?, Ab wann lohnt es sich)
+- Was passiert wenn peer seite/das Netzwerk verlässt
+- Cache update/Größe
+- finale/formale definition des Protokolls
