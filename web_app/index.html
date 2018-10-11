@@ -2,7 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>OpenHPI - P2P CDN</title>
+
+    <style>
+        .button {
+            background-color: #e7e7e7;
+            border: none;
+            color: black;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+        }
+    </style>
+
+    <link href="https://vjs.zencdn.net/7.0.5/video-js.css" rel="stylesheet">
 
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
     <script src="/socket.io/socket.io.js"></script>
@@ -11,34 +28,95 @@
     <script src="js/utils.js"></script>
 
     <script src="js/p2pCDN.js"></script>
+
+    <script> // init
+    localStorage.debug = '*,-socket.io*,-engine*';
+    var CHANNEL = 'FIXED_CLASS_1';
+    var STUN_SERVER = {
+      'iceServers': [
+        {
+          'urls': 'stun:stun.l.google.com:19302',
+        },
+      ],
+    };
+    var peer = new Peer(CHANNEL, STUN_SERVER);
+    </script>
+
+    <script src="https://vjs.zencdn.net/7.0.5/video.js"></script>
 </head>
 <body>
-    <h1>OpenHPI: P2P CDN</h1>
-    <p id="info"></p>
-    <p id="dataBig"></p>
-    <p id="dataSmall"></p>
+<div style="float: left; width: 50%">
+    <h1>OpenHPI: P2P CDN - Demo</h1>
 
-    <button id="btnStats">Stats</button>
-    <button id="btnDataBig">Request big resource</button>
-    <button id="btnDataSmall">Request small resource</button>
+    <p id="dataSmall" style="display: block"></p>
 
-    <script>
-      document.getElementById("btnStats").onclick = function(){
-        var doc = document.getElementById("info");
-        doc.innerHTML = 'My PeerId: ' + peer.peerId;
-        doc.innerHTML += '</br> Peer connections: ' + peer.peers.length;
-      };
+    <div id="stats" style="display: block">
+        <p id="peerid"></p>
+        <p id="connections"></p>
+        <p id="peers"></p>
+    </div>
 
-      document.getElementById("btnDataBig").onclick = function(){
-        var doc = document.getElementById("dataBig");
-        doc.innerHTML += '<img src="img/fab.gif">';
-      };
+    <div style="display: block">
+        <button id="btnDataSmall" class="button">Small resource</button>
+        <button id="btnDataBig" class="button">Big resource</button>
+    </div>
 
-      document.getElementById("btnDataSmall").onclick = function(){
-        var doc = document.getElementById("dataSmall");
-        doc.innerHTML += '<img src="img/logo.jpg">';
-      };
-    </script>
+</div>
+
+<div style="float: right; width: 50%">
+
+    <div style="float: left;">
+        <p id="dataBig" style="float: left"></p>
+
+        <div style="float: left">
+            <video id="video"
+                   class="video-js vjs-default-skin"
+                   height="220"
+                   width="380"
+                   controls>
+                <p>
+                    Your browser doesn't support video.
+                </p>
+                <source src="/video/example_video.m3u8">
+            </video>
+        </div>
+    </div>
+
+</div>
+
+<script>
+  document.addEventListener('ui:onUpdate', function(event) {
+    if (!document.getElementById('peerid'))
+      return;
+
+    var peer = event.detail;
+    var id = document.getElementById('peerid');
+    var conCount = document.getElementById('connections');
+    var peersInfo = document.getElementById('peers');
+
+    id.innerHTML = 'PeerId: ' + peer.peerId;
+
+    conCount.innerHTML = 'Connections: ' + peer.peers.length + '</br>';
+    peersInfo.innerHTML = '';
+    for (var i = 0; i < peer.peers.length; i++) {
+      var tmpPeer = peer.peers[i];
+      peersInfo.innerHTML += '&emsp; Id: ' + tmpPeer.id + ' &emsp; resources: ' + tmpPeer.resources.length + '</br>';
+    }
+  });
+
+  document.getElementById('btnDataBig').onclick = function() {
+    var doc = document.getElementById('dataBig');
+    doc.innerHTML += '<img style="height: 250px; width: auto;" src="img/fab.gif">';
+  };
+
+  document.getElementById('btnDataSmall').onclick = function() {
+    var doc = document.getElementById('dataSmall');
+    doc.innerHTML += '<img style="height: 60px; width: auto;" src="img/hpi.png">';
+  };
+
+  videojs(document.querySelector('video'));
+
+</script>
 
 </body>
 </html>

@@ -3,9 +3,6 @@ class ServiceWorkerMiddleware {
   constructor() {
     this.log = debug('openhpi:ServiceWorkerMiddleware');
     this.log('setup');
-
-    this.onRequest = null;
-    this.onUpdate = null;
     this._initServiceWorker();
   }
 
@@ -28,26 +25,64 @@ class ServiceWorkerMiddleware {
     }
   }
 
+  _onRequest(hash, cb) {
+    const msg = {hash: hash, cb: cb};
+
+    document.dispatchEvent(
+        new CustomEvent('peer:onRequestResource', {detail: msg})
+    );
+  }
+
+  _onUpdate(hash) {
+    document.dispatchEvent(
+        new CustomEvent('peer:onUpdatePeers', {detail: hash})
+    );
+  }
+
   _initListeners() {
     navigator.serviceWorker.addEventListener('message', function(event) {
       this.log('received request for: %o', event.data);
 
-      if(event.data.type === 'update'){
-        this.onUpdate(event.data.hash);
+      if (event.data.type === 'update') {
+        this._onUpdate(event.data.hash);
       } else if (event.data.type === 'request') {
         const reply = response => {
           this.log('have received something: %s', response);
           event.ports[0].postMessage(response);
         };
-        this.onRequest(event.data.hash, reply);
+        this._onRequest(event.data.hash, reply);
       } else {
         this.log('cant match request!');
       }
+    }.bind(this));
+
+    document.addEventListener('sw:clientReady', function(event){
+      const msg = { type: 'status', msg: 'ready' };
+      this.messageToServiceWorker(msg);
+    }.bind(this));
+
+    document.addEventListener('sw:onRequestCache', function(event){
+      const msg = { type: "cache" };
+      this.messageToServiceWorker(msg).then(cachedResources => {
+        event.detail(cachedResources);
+      });
+    }.bind(this));
+
+    document.addEventListener('sw:onRequestResource', function(event){
+      const msg = { type: "resource", resource: event.detail.hash };
+
+      this.messageToServiceWorker(msg).then(resource => {
+        event.detail.cb(resource);
+      });
     }.bind(this));
   }
 
   messageToServiceWorker(msg) {
     return new Promise((resolve, reject) => {
+      if(!navigator.serviceWorker.controller){
+        resolve(undefined);
+        return;
+      }
       const msg_chan = new MessageChannel();
       // Handler for receiving message reply from service worker
       msg_chan.port1.onmessage = event => {
@@ -58,7 +93,7 @@ class ServiceWorkerMiddleware {
         }
       };
 
-      this.log('ask service worker for %s', msg);
+      this.log('ask service worker for %o', msg);
       // Send message to service worker along with port for reply
       navigator.serviceWorker.controller.postMessage(msg, [msg_chan.port2]);
     });

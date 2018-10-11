@@ -1,21 +1,17 @@
 const CACHE_NAME = 'my-site-cache-v1';
 const version = '1.2.3';
+// const clientState = {};
+let hasClientConnection = false;
+// const maxRetryCount = 300;
+const cachingEnabled = false;
 const urlsToCache = [
-  '/img/fab.gif',
-  '/img/logo.jpg',
-];
+  '/img/',
+  '/video/',
+].join('|');
 
 self.importScripts('/js/utils.js');
 
 self.addEventListener('install', function(event) {
-  // Perform install steps
-  // event.waitUntil(
-  //   caches.open(CACHE_NAME)
-  //     .then(function(cache) {
-  //       console.log('Opened cache');
-  //       return cache.addAll(urlsToCache);
-  //     })
-  // );
   event.waitUntil(self.skipWaiting()); // Activate worker immediately
 });
 
@@ -23,12 +19,32 @@ self.addEventListener('activate', function(event) {
   event.waitUntil(self.clients.claim()); // Become available to all pages
 });
 
+// async function sleep(ms) {
+//   return new Promise(resolve => setTimeout(resolve, ms));
+// }
+//
+// async function waitForClient(client, tryCount) {
+//   if (maxRetryCount === tryCount) {
+//     return false;
+//   }
+//   if (clientState[client.id] === 'ready') {
+//     return true;
+//   }
+//   await sleep(200);
+//   console.log('wait for client');
+//   return waitForClient(client, tryCount + 1);
+// }
+
+// function clientIsReady(client) {
+//   return clientState[client.id] === 'ready';
+// }
+
 function sendMessageToClient(msg, clientID) {
   return new Promise(async function(resolve, reject) {
     const client = await clients.get(clientID);
+    // await waitForClient(client, 0);
     const msg_chan = new MessageChannel();
-    const timeout = 5000;
-
+    const timeout = 20000;
     let receivedResponse = false;
 
     // Handler for receiving message reply from service worker
@@ -54,6 +70,21 @@ function sendMessageToClient(msg, clientID) {
   });
 }
 
+function getCacheKeys() {
+  const result = [];
+
+  return caches.open(version).then(cache => {
+    return cache.keys().then(keys => {
+      keys.forEach(key => {
+        let url = key.url;
+        result.push(url.substr(url.lastIndexOf('/') + 1));
+      });
+
+      return result;
+    });
+  });
+}
+
 function getFromCache(key) {
   return caches.open(version).then(cache => {
     return cache.match(key).then(response => {
@@ -63,18 +94,24 @@ function getFromCache(key) {
 }
 
 async function getFromClient(clientId, hash) {
-  console.log('ask client to get: ', hash);
-  const msg = {type: 'request', hash};
 
-  const message = await sendMessageToClient(msg, clientId);
+  if(hasClientConnection){
+    console.log('ask client to get: ', hash);
+    const msg = {type: 'request', hash};
+    const message = await sendMessageToClient(msg, clientId);
 
-  if (message.data)
-    return new Response(message.data);
+    if (message.data)
+      return new Response(message.data);
+  } else {
+    console.log('client not ready yet');
+  }
   return undefined;
 }
 
 function getFromInternet(url) {
-  return fetch(url);
+  return fetch(url).then(response => {
+    return response;
+  });
 }
 
 async function putIntoCache(key, response) {
@@ -92,14 +129,17 @@ async function notifyPeers(hash, clientID) {
   client.postMessage(msg);
 }
 
-function handelRequest(url, clientId) {
+function handleRequest(url, clientId) {
   return new Promise((resolve) => {
     sha256(url).then(hash => {
       // check cache
       getFromCache(hash).then(cacheResponse => {
         console.log('cacheResponse ', cacheResponse);
-        if (cacheResponse)
+        if (cacheResponse && cachingEnabled) {
+          notifyPeers(hash, clientId);
           resolve(cacheResponse);
+          return;
+        }
         // check peers
         getFromClient(clientId, hash).then(peerResponse => {
           console.log('peerResponse ', peerResponse);
@@ -107,6 +147,7 @@ function handelRequest(url, clientId) {
             putIntoCache(hash, peerResponse);
             notifyPeers(hash, clientId);
             resolve(peerResponse);
+            return;
           }
           // get from the internet
           getFromInternet(url).then(response => {
@@ -125,26 +166,36 @@ self.addEventListener('fetch', function(event) {
   const request = event.request;
   const url = new URL(event.request.url);
 
-  console.log('try to fetch --> ', event.request.url);
+  console.log('received request: ' + url);
 
-  if (!urlsToCache.includes(url.pathname)) return;
+  if (!new RegExp(urlsToCache, 'gi').test(url.pathname)) return;
+
+  console.log('sw handles request: ' + url);
+
   if (!event.clientId) return;
   if (url.origin !== location.origin) return;
 
   console.log('fetch --> ', event.request.url);
 
-  event.respondWith(handelRequest(event.request.url, event.clientId));
+  event.respondWith(handleRequest(event.request.url, event.clientId));
 });
 
 self.addEventListener('message', function(event) {
-  const hash = event.data;
+  const msg = event.data;
 
-  console.log('received request for ', hash);
-  getFromCache(hash).then(cacheResponse => {
-    console.log('cached object ', cacheResponse);
-    cacheResponse.arrayBuffer().then(buffer => {
-      console.log('got buffer ', buffer);
-      event.ports[0].postMessage(buffer, [buffer]);
+  if (msg.type === 'status' && msg.msg === 'ready') {
+    hasClientConnection = true;
+  } else if (msg.type === 'cache') {
+    getCacheKeys().then(keys => {
+      event.ports[0].postMessage(keys);
     });
-  });
+  } else if (msg.type === 'resource') {
+    getFromCache(msg.resource).then(cacheResponse => {
+      console.log('cached object ', cacheResponse);
+      cacheResponse.arrayBuffer().then(buffer => {
+        console.log('got buffer ', buffer);
+        event.ports[0].postMessage(buffer, [buffer]);
+      });
+    });
+  }
 });

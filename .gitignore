@@ -2,3 +2,4 @@
 .DS_Store
 node_modules
 web_app/js/
+build/tmp

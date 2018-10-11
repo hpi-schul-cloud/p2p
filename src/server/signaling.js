@@ -1,5 +1,5 @@
 const socketIO = require('socket.io');
-const debug = require('debug')('openhpi:signaling');
+const debug = require('debug')('openhpi:server-signaling');
 
 class ServerSignaling {
 
@@ -54,7 +54,6 @@ class ServerSignaling {
     const peerId = this._getClientId(socket);
 
     // todo: check if room has reached max members?
-
     socket.join(channel);
     this._joinPeer(socket, channel);
 
@@ -64,7 +63,7 @@ class ServerSignaling {
 
   _dispatcher(handler, socket) {
     socket.on('hello', channel => handler._onHello(socket, channel));
-    socket.on('close', () => handler._onClose(socket));
+    socket.on('disconnect', () => handler._onDisconnect(socket));
     socket.on('message', (to, msg) => handler._onMessage(socket, to, msg));
   }
 
@@ -80,8 +79,8 @@ class ServerSignaling {
     }
   }
 
-  _onClose(socket) {
-    debug('close connection for %s', socket.id);
+  _onDisconnect(socket) {
+    debug('connection disconnect for %s', socket.id);
     const peerId = this._getClientId(socket);
     const idx = this.peers.map(p => p.id).indexOf(peerId);
 
