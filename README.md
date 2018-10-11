@@ -88,7 +88,11 @@ This is necessary because the client IDs need to be sent via the binary datachan
 this requires a fixed length. 
 
 ##### What is happening to the datachannel message limit?
-_abToMessage
+
+Currently, it is only possible to send messeges not larger than 16kiB via the ``RTCDataChannel``. In order to send 
+larger messages chunking and reassembling is necessary.
+These procedures take place in the ``_abToMessage()`` and ``_sendToPeer()`` methods in the 
+[peer.js](src/client/js/peer.js) file.  
 
 ## Demo
 To see this project in action, please watch this:
