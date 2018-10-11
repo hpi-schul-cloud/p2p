@@ -81,24 +81,26 @@ Client 2 (C2) ruft nun ebenfalls die Webseite auf und registriert sich beim *Sig
 
 Alle technischen Fragestellungen, die sich bezüglich der grundsätzlichen Funktionalität unserer Softwarelösung stellen wurden oben erläutert. Bevor ein Einsatz in einem Realen Umfeld vollzogen wird, sollten aber noch weitere technische Details beachtet werden. Die wichtigsten noch zu lösenden technischen Herausforderungen und mögliche Lösungsansätze hierfür sind im Folgenden aufgeführt.
 
-- Serialisierung der Daten: 
-Wie oben erwähnt wird für den Austausch von Daten der von *WebRTC* angebotene *DataChannel* genutzt, welcher das *Stream Control Transmission Protocol* kurz SCTP verwendet. Problem hierbei ist, dass dieses Protokoll ursprünglich für die Übertragung von Kontrollinformationen designt wurde und deshalb für die Kompatibilität verschiedener Browser eine Paketgröße von 16kiB nicht überschritten werden sollte. In unserem Kontext ist es aber notwendig auch größere Dateien zu übertragen, weshalb aktuell viele kleine Datenpakete übertragen werden müssen, wodurch ein großer Overhead entsteht.
+- **Serialisierung der Daten:** 
 
-- Integrität der Daten: 
-Es muss verhindert werden, dass ein bösartiger Nutzer manipulierte Ressourcen im lokalen Netzwerk verbreitet. 
-Hierzu kann die Integritätsüberprüfung von HTML5 verwendet werden, bei der die Integrität der Daten mittels einer Prüfsumme sichergestellt wird.
+	Wie oben erwähnt wird für den Austausch von Daten der von *WebRTC* angebotene *DataChannel* genutzt, welcher das *Stream Control Transmission Protocol* kurz SCTP verwendet. Problem hierbei ist, dass dieses Protokoll ursprünglich für die Übertragung von Kontrollinformationen designt wurde und deshalb für die Kompatibilität verschiedener Browser eine Paketgröße von 16kiB nicht überschritten werden sollte. In unserem Kontext ist es aber notwendig auch größere Dateien zu übertragen, weshalb aktuell viele kleine Datenpakete übertragen werden müssen, wodurch ein großer Overhead entsteht.
 
-- Verteilung der Daten in größeren Gruppen: 
-Für den Austausch von Daten bilden aktuell alle Teilnehmer ein vollständig vermaschtes Netz. Bei einer Klassengröße von 30 hat also jeder Browser 29 offene *DataChannels*. 
-Denkt man beispielsweise an eine Vollversammlung mit etwa 1000 Schülern, kann die große Anzahl der offenen *DataChannels* zu Problemen führen. In solche Szenarien sollt eine andere Topologie eingesetzt werden um die Anzahl der offenen *DataChannels* zu reduzieren. Am sinnvollsten wäre hier eine baumartige oder irregulär vermaschte Topologie.
+- **Integrität der Daten:**
 
-- Evaluierung der Performance: 
-Ziel unserer Softwarelösung ist es, die Benutzbarkeit von Internetseiten in Anwesenheit einer schlechten Internetanbindung zu verbessern. 
-Interessant wäre es, den Performancezuwachs zu evaluieren, der durch den Einsatz unserer Lösung hervorgerufen wird. So könnte auch evaluiert werden, bis zu welcher zur Verfügung stehenden Datenrate der Einsatz unserer Lösung sinnvoll ist.
+	Es muss verhindert werden, dass ein bösartiger Nutzer manipulierte Ressourcen im lokalen Netzwerk verbreitet. Hierzu kann die Integritätsüberprüfung von HTML5 verwendet werden, bei der die Integrität der Daten mittels einer Prüfsumme sichergestellt wird.
 
-- Verwaltung des Caches: 
-Wie bereits beschrieben, setzen wir für die Zwischenspeicherung der Daten einen *Serviceworker* ein, welcher wiederum die *IndexDB* verwaltet. 
-Für die Zukunft sollte eine Lösung dafür gefunden werden ein sinnvolles Zeitfenster festzulegen in dem die Zwischengespeicherten Daten gültig sind, damit keine veralteten Daten ausgetauscht werden. 
-Ein weiterer Punkt ist die Größe des Caches. Hier sollte evaluiert werden, wie die Maximalgröße des Caches und dessen Performance dabei ist. In Anlehnung hieran sollte eine Obergrenze für die menge der zwischengespeicherten Daten festgelegt werden.
+- **Verteilung der Daten in größeren Gruppen:**
+
+	Für den Austausch von Daten bilden aktuell alle Teilnehmer ein vollständig vermaschtes Netz. Bei einer Klassengröße von 30 hat also jeder Browser 29 offene *DataChannels*. Denkt man beispielsweise an eine Vollversammlung mit etwa 1000 Schülern, kann die große Anzahl der offenen *DataChannels* zu Problemen führen. In solche Szenarien sollt eine andere Topologie eingesetzt werden um die Anzahl der offenen *DataChannels* zu reduzieren. Am sinnvollsten wäre hier eine baumartige oder irregulär vermaschte Topologie.
+
+- **Evaluierung der Performance:**
+
+	Ziel unserer Softwarelösung ist es, die Benutzbarkeit von Internetseiten in Anwesenheit einer schlechten Internetanbindung zu verbessern. Interessant wäre es, den Performancezuwachs zu evaluieren, der durch den Einsatz unserer Lösung hervorgerufen wird. So könnte auch evaluiert werden, bis zu welcher zur Verfügung stehenden Datenrate der Einsatz unserer Lösung sinnvoll ist.
+
+- **Verwaltung des Caches:**
+
+	Wie bereits beschrieben, setzen wir für die Zwischenspeicherung der Daten einen *Serviceworker* ein, welcher wiederum die *IndexDB* verwaltet. Für die Zukunft sollte eine Lösung dafür gefunden werden ein sinnvolles Zeitfenster festzulegen in dem die Zwischengespeicherten Daten gültig sind, damit keine veralteten Daten ausgetauscht werden. Ein weiterer Punkt ist die Größe des Caches. Hier sollte evaluiert werden, wie die Maximalgröße des Caches und dessen Performance dabei ist. In Anlehnung hieran sollte eine Obergrenze für die menge der zwischengespeicherten Daten festgelegt werden.
+
+Durch die Diskussion obiger technischer Fragestellungen, sowie der offenen Herausforderungen zeigt sich, dass unsere Implementation zwar ein fortgeschrittener *Proof of Concept* aber noch kein fertiges Softwareprodukt ist. Die größten offenen Baustellen sind unserer Ansicht nach die allgemeine Software- bzw. Netwerksicherheit sowie der große Overhead beim Segmentieren der Daten. Diese stellen zwar eine Herausforderungen dar, jedoch keine unlösbaren und so sind wir zuversichtlich, dass eine Weiterentwicklung unserer Software in naher Zukunft im Schulalltag Anwendung findet. 
 
 
