@@ -77,14 +77,24 @@ In unserer Implementation wird, sobald eine neuer Besucher der Webseite hinzukom
 Client 1 (C1) ist der erste der die Webseite aufruft. Er registriert sich beim *Signaling server* und fragt im Anschluss *img.png* an (rot). Da noch niemand anders auf der Seite ist von dem er die Ressource bekommen könnte und er zudem die Ressource nicht in seinem Cache hat, wird *img.png* über das Internet vom Webserver geladen. 
 Client 2 (C2) ruft nun ebenfalls die Webseite auf und registriert sich beim *Signaling server*. Dieser benachrichtigt C1, dass ein neuer Teilnehmer registriert wurde, woraufhin C1 einen Verbindungsaufbau zu C2 einleitet. Steht die direkte Verbindung zwischen C1 und C2 (grün), teilt C1 C2 den Inhalt seines aktuellen Caches mit. Fragt C2 *img.png* an (rot), weiß er so, dass er diese von C1 anfragen kann. Hat er *img.png* erhalten, teilt er allen anderen Teilnehmern (in diesem Fall nur C1) mit, dass auch er jetzt *img.png* als Ressource in seinem Cache hat.
 
-#### Technische Herausforderungen
+#### Noch offene technische Herausforderungen
 
-Hier fehlt noch ein technischer Ausblick!
-- Integrität der Ressourcen (Verhindern: Verbreitung bösartige/manipulierte Inhalte)
-- Security: connection limits
-- Verteilung der Daten in großen Gruppen (vollständiger Graph, Baum, Ring, ... ?)
-- data serialization, limit 16kiB (wird evtl. geändert: SCTP ndata)
-- Evaluierung der Performance (Verbesserung?, Ab wann lohnt es sich)
-- Was passiert wenn peer seite/das Netzwerk verlässt
-- Cache update/Größe
-- finale/formale definition des Protokolls
+- Serialisierung der Daten: 
+Wie oben erwähnt wird für den Austausch von Daten der von *WebRTC* angebotene *DataChannel* genutzt, welcher das *Stream Control Transmission Protocol* kurz SCTP verwendet. Problem hierbei ist, dass dieses Protokoll ursprünglich für die Übertragung von Kontrollinformationen designt wurde und deshalb für die Kompatibilität verschiedener Browser eine Paketgröße von 16kiB nicht überschritten werden sollte. In unserem Kontext ist es aber notwendig auch größere Dateien zu übertragen, weshalb aktuell viele kleine Datenpakete übertragen werden müssen, wodurch ein großer Overhead entsteht.
+
+- Integrität der Daten: 
+Es muss verhindert werde, dass ein bösartiger Nutzer manipulierte Ressourcen im lokalen Netzwerk verbreitet. 
+Hierzu kann die Integritätsüberprüfung von HTML5 verwendet werden, bei der die Integrität der Daten mittels einer Prüfsumme sichergestellt wird.
+
+- Verteilung der Daten in größeren Gruppen: 
+Für den Austausch von Daten bilden aktuell alle Teilnehmer ein vollständig vermaschtes Netz. Bei einer Klassengröße von 30 hat also jeder Browser 29 offene *DataChannels*. 
+Denkt man beispielsweise an eine Vollversammlung von etwa 1000 Schülern kann die große Anzahl der offenen *DataChannels* zu Problemen führen. In solche Szenarien sollt eine andere Topologie eingesetzt werden um die Anzahl der offenen *DataChannels* zu reduzieren. Am sinnvollsten wäre hier eine baumartige oder irregulär vermaschte Topologie.
+
+- Evaluierung der Performance: 
+Ziel unserer Softwarelösung ist es, die Benutzbarkeit von Internetseiten in Anwesenheit einer schlechten Internetanbindung zu verbessern. 
+Interessant wäre es, den Performance Zuwachs zu evaluieren, der durch den Einsatz unserer Lösung hervorgerufen wird. So könnte auch evaluiert werden, bis zu welcher zur Verfügung stehender Datenrate der Einsatz unserer Lösung sinnvoll ist.
+
+- Verwaltung des Caches: 
+Wie beschrieben bereits beschrieben, setzen wir für die Zwischenspeicherung der Daten einen *Serviceworker* ein, welcher wiederum die *IndexDB* verwaltet. 
+Für die Zukunft sollte eine Lösung dafür gefunden werden ein sinnvolles Zeitfenster festzulegen in dem die Zwischengespeicherten Daten gültig sind, damit keine veralteten Daten ausgetauscht werden. 
+Ein weiterer Punkt ist die Größe des Caches. Hier sollte evaluiert werden, wie die maximalgröße des Caches und dessen Performanz dabei ist. In ahnlehnung hieran sollte eine Obergrenze für die menge der zwischengespeicherten Daten festgelegt werden.
