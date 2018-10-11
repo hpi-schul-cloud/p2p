@@ -1,9 +1,8 @@
 class ServiceWorkerMiddleware {
 
-  constructor(peer) {
+  constructor() {
     this.log = debug('openhpi:ServiceWorkerMiddleware');
     this.log('setup');
-    this.peer = peer
     this._initServiceWorker();
   }
 
@@ -23,46 +22,59 @@ class ServiceWorkerMiddleware {
         }
       });
       this._initListeners();
-
     }
   }
 
-  onRequest(hash, cb) {
-    this.peer.requestResourceFromPeers(hash, cb);
-    document.dispatchEvent(
-      new CustomEvent('p2pCDN:onUpdate', {detail: this.peer.peers})
-    );
-  };
+  _onRequest(hash, cb) {
+    const msg = {hash: hash, cb: cb};
 
-  onUpdate(hash) {
-    this.peer.updatePeers(hash);
     document.dispatchEvent(
-      new CustomEvent('p2pCDN:onUpdate', {detail: this.peer.peers})
+        new CustomEvent('peer:onRequestResource', {detail: msg})
     );
-  };
+  }
+
+  _onUpdate(hash) {
+    document.dispatchEvent(
+        new CustomEvent('peer:onUpdatePeers', {detail: hash})
+    );
+  }
 
   _initListeners() {
     navigator.serviceWorker.addEventListener('message', function(event) {
       this.log('received request for: %o', event.data);
 
-      if(event.data.type === 'update'){
-        this.onUpdate(event.data.hash);
+      if (event.data.type === 'update') {
+        this._onUpdate(event.data.hash);
       } else if (event.data.type === 'request') {
         const reply = response => {
           this.log('have received something: %s', response);
           event.ports[0].postMessage(response);
         };
-        this.onRequest(event.data.hash, reply);
+        this._onRequest(event.data.hash, reply);
       } else {
         this.log('cant match request!');
       }
     }.bind(this));
-    document.addEventListener('p2pCDN:clientReady', function(event){
+
+    document.addEventListener('sw:clientReady', function(event){
       const msg = { type: 'status', msg: 'ready' };
-      this.messageToServiceWorker(msg)
+      this.messageToServiceWorker(msg);
     }.bind(this));
 
+    document.addEventListener('sw:onRequestCache', function(event){
+      const msg = { type: "cache" };
+      this.messageToServiceWorker(msg).then(cachedResources => {
+        event.detail(cachedResources);
+      });
+    }.bind(this));
 
+    document.addEventListener('sw:onRequestResource', function(event){
+      const msg = { type: "resource", resource: event.detail.hash };
+
+      this.messageToServiceWorker(msg).then(resource => {
+        event.detail.cb(resource);
+      });
+    }.bind(this));
   }
 
   messageToServiceWorker(msg) {
@@ -81,7 +93,7 @@ class ServiceWorkerMiddleware {
         }
       };
 
-      this.log('ask service worker for %s', msg);
+      this.log('ask service worker for %o', msg);
       // Send message to service worker along with port for reply
       navigator.serviceWorker.controller.postMessage(msg, [msg_chan.port2]);
     });

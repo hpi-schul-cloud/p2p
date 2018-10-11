@@ -1,26 +1,20 @@
 class Peer {
 
-  constructor(signalFunction, stunServer) {
+  constructor(channel, stunServer) {
     this.log = debug('openhpi:peer');
     this.log('setup');
 
-    this.signal = signalFunction;
+    this.signaling = new Signaling();
+    this.serviceWorker = new ServiceWorkerMiddleware();
+
     this.stunServer = stunServer;
     this.peerId = undefined;
-    this.onClose = undefined;
-    this.onRequested = undefined;
-    this.onUpdatePeers = undefined;
-
     this.peers = [];
     this.requests = [];
-    this.resourceCache = [];
-    this.discover = false;
-    this.discoverRequestCount = 3;
-    this.discoverPeerIds = [];
-    this.discoveredPeers = [];
+    this.cacheNotification = [];
 
     this.message = Object.freeze({
-      types: {discover: 1, update: 2, request: 3, chunk: 4, answer: 5},
+      types: {update: 1, request: 2, chunk: 3, response: 4},
       sizes: { // in byte
         type: 1,
         peerId: 24,
@@ -30,6 +24,60 @@ class Peer {
         maxData: 65536,
       },
     });
+
+    this._registerEvents();
+
+    // Send handshake to server
+    this.signaling.hello(channel);
+  }
+
+  _updateUI() {
+    document.dispatchEvent(
+        new CustomEvent('ui:onUpdate', {detail: {
+          peerId: this.peerId, peers: this.peers}
+        })
+    );
+  }
+
+  _updateSW() {
+    document.dispatchEvent(
+        new CustomEvent('sw:clientReady')
+    );
+  }
+
+  _registerEvents() {
+    document.addEventListener('peer:onReceiveId', event => {
+      this.peerId = event.detail;
+      this._updateUI();
+      this._updateSW();
+    });
+
+    document.addEventListener('peer:onUpdatePeers', event => {
+      this.updatePeers(event.detail);
+      this._updateUI();
+    });
+
+    document.addEventListener('peer:onNewConnection', event => {
+      this.connectTo(event.detail);
+      this._updateUI();
+    });
+
+    document.addEventListener('peer:onRequestResource', event => {
+      const msg = event.detail;
+      this.requestResourceFromPeers(msg.hash, msg.cb);
+    });
+
+    document.addEventListener('peer:onSignalingMessage', event => {
+      const msg = event.detail;
+      this.receiveSignalMessage(msg.peerId, msg.message)
+      this._updateUI();
+    });
+
+    document.addEventListener('peer:onClose', event => {
+      this.removePeer(event.detail);
+      this._updateUI();
+    });
+
   }
 
   _getPeerIdx(peerId) {
@@ -88,7 +136,7 @@ class Peer {
 
     peer.con.setLocalDescription(desc).then(() => {
       this.log('sending local desc: %o', peer.con.localDescription);
-      this.signal(peer.id, peer.con.localDescription);
+      this.signaling.send(peer.id, peer.con.localDescription);
     });
   }
 
@@ -141,67 +189,34 @@ class Peer {
   }
 
   _addResource(peer, resource) {
-    peer.resources.push(resource);
-
-    if (typeof this.onUpdatePeers !== undefined){
-      this.onUpdatePeers(this.peers);
+    if (peer.resources.indexOf(resource) === -1) {
+      peer.resources.push(resource);
+      this._updateUI();
     }
   }
 
-  _setDiscoveredResources() {
-    this.discoveredPeers.map(discoveredPeer => {
-      const peerId = discoveredPeer.id;
-      const connectedPeer = this._getPeer(peerId);
+  _checkCache() {
+    const cb = cachedResources => {
+      this.log('cached resources %o', cachedResources);
+      if (cachedResources && cachedResources.length > 0) {
+        this.peers.forEach(peer => {
+          const alreadySent = this.cacheNotification.indexOf(peer.id) >= 0;
 
-      if(connectedPeer){
-        discoveredPeer.resources.map(r => {
-          if (connectedPeer.resources.indexOf(r) === -1) {
-            this.log('set resource %s of connected peer %s', r, peerId);
-            this._addResource(connectedPeer, r);
+          if (!alreadySent) {
+            cachedResources.forEach(hash => {
+              if (peer.dataChannel) {
+                this.log('update %s about cached resource %s', peer.id, hash);
+                this.cacheNotification.push(peer.id);
+                this._sendToPeer(peer, this.message.types.update, hash);
+              }
+            });
           }
         });
       }
-    });
-  }
-
-  _discoverPeers() {
-    if(this.discover){
-      let i = 0;
-      while(i < this.discoverRequestCount && i < this.peers.length) {
-        const randomPeerId = Math.floor(Math.random() * this.peers.length);
-        const peer = this.peers[randomPeerId];
-        const discoverType = this.message.types.discover;
-        const timestamp = new Date().getTime().toString();
-        const alreadyRequested = this.discoverPeerIds.indexOf(peer.id) >= 0;
-
-        // only to peers with dataChannel
-        if (peer.dataChannel && !alreadyRequested) {
-          this.log('discover request to peer %s', peer.id);
-          this.discoverPeerIds.push(peer.id);
-          sha256(timestamp).then(hash => {
-            // request discovery
-            this._requestPeer(peer, discoverType, hash, (peersAb) => {
-              const discoveredPeers = JSON.parse(abToStr(peersAb));
-              const setDiscovered = discoveredPeers.length > this.discoveredPeers.length;
-
-              this.log('discovered peers %o from %s', discoveredPeers, peer.id);
-
-              if(setDiscovered){
-                this.discoveredPeers = discoveredPeers;
-                this._setDiscoveredResources();
-              }
-              document.dispatchEvent(
-                new CustomEvent('p2pCDN:clientReady')
-              );
-            });
-          });
-          this.discoverRequestCount -= 1;
-          this.discover = this.discoverRequestCount > 0;
-        }
-        i +=1;
-      }
-
-    }
+    };
+    document.dispatchEvent(
+        new CustomEvent('sw:onRequestCache', {detail: cb})
+    );
   }
 
   _abToMessage(ab) {
@@ -251,28 +266,13 @@ class Peer {
       message.chunkCount = parseInt(abToStr(chunkCountAb));
     }
 
-    // Get answer
-    if (message.type === this.message.types.answer) {
+    // Get response
+    if (message.type === this.message.types.response) {
       chunkStart = chunkEnd;
       message.data = new Uint8Array(ab.slice(chunkStart));
     }
 
     return message;
-  }
-
-  _handleDiscovery(message) {
-    let discovery;
-    if(this.resourceCache.length > 0){
-      discovery = [{id: this.peerId, resources: this.resourceCache}];
-      //this.resourceCache = [];
-    } else {
-      discovery = this.peers.map(p => {
-        return {id: p.id, resources: p.resources}
-      });
-    }
-    const discoveryAb = strToAb(JSON.stringify(discovery));
-
-    this._handleResponse(message, discoveryAb);
   }
 
   _handleUpdate(message) {
@@ -286,11 +286,23 @@ class Peer {
     }
   }
 
+  _handleRequest(message){
+    const cb = response => {
+      this._handleResponse(message, response);
+    };
+
+    document.dispatchEvent(
+        new CustomEvent('sw:onRequestResource', {detail: {
+            hash: message.hash, cb: cb}
+        })
+    );
+  }
+
   _handleResponse(message, responseAb) {
     const peer = this._getPeer(message.from);
 
     if (responseAb.byteLength <= this.message.sizes.maxData) {
-      this._sendToPeer(peer, this.message.types.answer, message.hash, responseAb);
+      this._sendToPeer(peer, this.message.types.response, message.hash, responseAb);
     } else {
       this._sendChunkedToPeer(peer, message.hash, responseAb);
     }
@@ -387,7 +399,7 @@ class Peer {
 
     channel.onopen = () => {
       this.log('data channel opened');
-      this._discoverPeers();
+      this._checkCache();
     };
 
     channel.onclose = () => {
@@ -401,21 +413,16 @@ class Peer {
       this.log('decoded message %o', message);
 
       switch (message.type) {
-        case types.discover:
-          this._handleDiscovery(message);
-          break;
         case types.update:
           this._handleUpdate(message);
           break;
         case types.request:
-          this.onRequested(message.hash, responseAb => {
-            this._handleResponse(message, responseAb);
-          });
+          this._handleRequest(message);
           break;
         case types.chunk:
           this._handleChunk(message);
           break;
-        case types.answer:
+        case types.response:
           this._handleAnswer(message);
           break;
       }
@@ -435,18 +442,16 @@ class Peer {
 
     this.peers.push(peer);
 
-    peer.con.onclose = this.onClose;
     peer.con.onicecandidate = event => {
       this.log('icecandidate event: %o', event);
 
       if (event.candidate) {
-        this.signal(peer.id, {
+        this.signaling.send(peer.id, {
               type: 'candidate',
               label: event.candidate.sdpMLineIndex,
               id: event.candidate.sdpMid,
               candidate: event.candidate.candidate,
-            }
-        );
+        });
       }
     };
 
@@ -463,7 +468,6 @@ class Peer {
       });
 
     } else {
-      this.discover = true;
       peer.con.ondatachannel = event => {
         this.log('ondatachannel: %o', event.channel);
 
@@ -524,10 +528,7 @@ class Peer {
   }
 
   updatePeers(hash) {
-    if(this.peers.length === 0) {
-      this.log('no peer connections, use resource cache for %s', hash);
-      this.resourceCache.push(hash);
-    } else {
+    if(this.peers.length > 0) {
       this.log('broadcast peers for %s', hash);
       this.peers.forEach(peer => {
         this._sendToPeer(peer, this.message.types.update, hash);

@@ -10,7 +10,7 @@ const fileServer = new nodeStatic.Server(clientPath);
 const signaling = new ServerSignaling();
 
 const app = http.createServer((req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // res.setHeader('Access-Control-Allow-Origin', '*');
   fileServer.serve(req,res);
 }).listen(port);
 
