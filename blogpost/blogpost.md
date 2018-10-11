@@ -79,11 +79,11 @@ Client 2 (C2) ruft nun ebenfalls die Webseite auf und registriert sich beim *Sig
 
 #### Noch offene technische Herausforderungen
 
-Alle technischen Fragestellungen, die sich bezüglich der grundsätzlichen Funktionalität unserer Softwarelösung stellen wurden oben erläutert. Bevor ein Einsatz in einem Realen Umfeld vollzogen wird, sollten aber noch weitere technische Details beachtet werden. Die wichtigsten noch zu lösenden technischen Herausforderungen und mögliche Lösungsansätze hierfür sind im Folgenden aufgeführt.
+Alle technischen Fragestellungen, die sich bezüglich der grundsätzlichen Funktionalität unserer Softwarelösung stellen wurden oben erläutert. Bevor ein Einsatz in einem realen Umfeld vollzogen wird, sollten aber noch weitere technische Details beachtet werden. Die wichtigsten noch zu lösenden technischen Herausforderungen und mögliche Lösungsansätze hierfür sind im Folgenden aufgeführt.
 
 - **Serialisierung der Daten:** 
 
-	Wie oben erwähnt wird für den Austausch von Daten der von *WebRTC* angebotene *DataChannel* genutzt, welcher das *Stream Control Transmission Protocol* kurz SCTP verwendet. Problem hierbei ist, dass dieses Protokoll ursprünglich für die Übertragung von Kontrollinformationen designt wurde und deshalb für die Kompatibilität verschiedener Browser eine Paketgröße von 16kiB nicht überschritten werden sollte. In unserem Kontext ist es aber notwendig auch größere Dateien zu übertragen, weshalb aktuell viele kleine Datenpakete übertragen werden müssen, wodurch ein großer Overhead entsteht.
+	Wie oben erwähnt wird für den Austausch von Daten der von *WebRTC* angebotene *DataChannel* genutzt, welcher das *Stream Control Transmission Protocol* kurz SCTP verwendet. Problem hierbei ist, dass dieses Protokoll ursprünglich für die Übertragung von Kontrollinformationen designt wurde und deshalb für die Kompatibilität verschiedener Browser eine Paketgröße von 16kiB nicht überschritten werden sollte. In unserem Kontext ist es aber notwendig auch größere Dateien zu übertragen, weshalb aktuell viele kleine Datenpakete verwendet werden müssen. Hierdurch entsteht einnicht zu vernachlässigender Overhead.
 
 - **Integrität der Daten:**
 
