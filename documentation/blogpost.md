@@ -13,7 +13,7 @@ Eine grafische Gegenüberstellung der aktuellen bzw. der Situation, wie sie durc
 
 Alle Ressourcen werden aus dem Internet geladen | Ressourcen werden im lokalen Netzwerk verteilt  
 :-------------------------:|:-------------------------:
-![](./pictures/current_situation.svg)  |  ![](./pictures/goal.svg)
+![](pictures/current_situation.svg)  |  ![](pictures/goal.svg)
 
 Insgesamt geht es darum die Nutzbarkeit von Internetseiten mit datenintensiven Inhalten deutlich zu steigern. Wichtig hierfür ist, dass die lokale Verbreitung der Inhalte schneller abläuft, als das Laden dieser aus dem Internet. 
 

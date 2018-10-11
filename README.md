@@ -54,7 +54,7 @@ to your container.
 ## Architecture
 To give a broad idea about the architecture:
 
-![Service Worker Architecture](documentation/sw_architecture.png)
+![Service Worker Architecture](documentation/pictures/sw_architecture.svg)
 
 The service worker intercepts the network request, checks its cache and peers and if 
 someone is able to answer the request it will send a request to that peer.
@@ -71,7 +71,7 @@ concerning this topic.
 ### Message Protocol
 The following sequential diagram shows how peers establish a connection:
 
-![messageflow](documentation/P2P-CDN-messageflow.png)
+![messageflow](documentation/pictures/SequenceDiagram.svg)
 
 Basically, every peer knows everyone within the network and their resources. 
 An example request is visualized with the red lines. Meanwhile the connection establishment
@@ -97,7 +97,9 @@ These procedures take place in the ``_abToMessage()`` and ``_sendToPeer()`` meth
 ## Demo
 To see this project in action, please watch this:
 
-ADD VIDEO HERE
+<div align="center">
+  <a href="https://drive.google.com/open?id=1MoI6pnDDNAFQpy4c0LvSPyTjphW0AUpR"><img src="documentation/pictures/video.png" alt="Video picture"></a>
+</div>
 
 In the left screen the internet connection is checked via a ping to google.
 In the right screen a png (~12KB), a gif (~12MB), and a video (~40MB) is requested.
