@@ -36,7 +36,7 @@ node index.js
 - Stun server
 
 ## Architecture
-![Service Worker Architecture](documentation/sw_architecture.png)
+![Service Worker Architecture](documentation/sw_architecture.svg)
 ### Message Protocol
 ![messageflow](documentation/P2P-CDN-messageflow.png)
 
