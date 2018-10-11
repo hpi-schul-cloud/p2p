@@ -7,7 +7,7 @@ Auch wir vom Hasso Plattner Institut waren mal in der Schule und kennen genau di
 ## Verbesserungsbedarf!
 Die Ursache für das oben beschriebene Szenario ist so gut wie immer auf eine zu geringe zur Verfügung stehenden Datenrate der Internetanbindung zurückzuführen. Dieser Flaschenhals lässt sich aufgrund des mangelden Breitbandausbaus oder mangelnder finanzieller Mittel der Schulen oft nicht lösen. 
 
-Die grundlegende Idee besteht deshalb darin, die Internetanbindung zu entlasten. Da oft alle Schüler nahezu die gleichen Ressourcen aus dem Internet anfragen, könnte dies dadurch realisiert werden, dass die Inhalte im lokalen Netzwerk verteilt werden. Unter der Annahme, das in einer Schulklasse etwa 30 Schüler sind, könnte die Internetanbindung um bis zu Faktor 30 entlastet werden. Beachtet man zusätzlich, dass nicht nur eine Klasse gleichzeitig die Internetanbindung der Schule nutzt, ergibt sich ein noch größeres Optimierungspotential.
+Die grundlegende Idee besteht deshalb darin, die Internetanbindung zu entlasten. Da oft alle Schüler nahezu die gleichen Ressourcen aus dem Internet anfragen, könnte dies dadurch realisiert werden, dass die Inhalte im lokalen Netzwerk verteilt werden. Unter der Annahme das in einer Schulklasse etwa 30 Schüler sind, könnte die Internetanbindung um bis zu Faktor 30 entlastet werden. Beachtet man zusätzlich, dass nicht nur eine Klasse gleichzeitig die Internetanbindung der Schule nutzt, ergibt sich ein noch größeres Optimierungspotential.
 
 Eine grafische Gegenüberstellung der aktuellen bzw. der Situation, wie sie durch lokale Datenübertragung erreicht werden könnte, zeigen die folgenden beiden Abbildungen.
 
@@ -15,12 +15,11 @@ Alle Ressourcen werden aus dem Internet geladen | Ressourcen werden im lokalen N
 :-------------------------:|:-------------------------:
 ![](./pictures/current_situation.svg)  |  ![](./pictures/goal.svg)
 
-Insgesamt geht es darum die Benutzbarkeit von Internetseiten mit datenintensiven Inhalten deutlich zu steigern. Wichtig hierfür ist, dass die lokale Verbreitung der Inhalte schneller abläuft, als das Laden dieser aus dem Internet. 
+Insgesamt geht es darum die Nutzbarkeit von Internetseiten mit datenintensiven Inhalten deutlich zu steigern. Wichtig hierfür ist, dass die lokale Verbreitung der Inhalte schneller abläuft, als das Laden dieser aus dem Internet. 
 
-Um den Wartungsaufwand seitens der Schulen so gering wie möglich zu halten, ist es ebenfalls wünschenswert, dass keine zusätzliche Software installiert werden muss. Im Endeffekt soll keiner der Nutzer, weder Schüler noch Lehrer,  mitbekommen, dass etwas anders ist. Außer natürlich, dass die Inhalte schneller geladen werden und die entsprechende Internetseite so deutlich benutzbarer ist.
+Um den Wartungsaufwand seitens der Schulen so gering wie möglich zu halten, ist es ebenfalls wünschenswert, dass keine zusätzliche Software installiert werden muss. Im Endeffekt soll keiner der Nutzer, weder Schüler noch Lehrer,  mitbekommen, dass etwas anders abläuft. Außer natürlich, dass die Inhalte schneller geladen werden und die entsprechende Internetseite so deutlich benutzbarer ist.
 
 ## Beispielszenario
-Um eine Idee zu bekommen, wie eine Verbreitung von Daten aus dem Internet im lokalen Netzwerk im laufenden Betrieb aussehen könnte hier ein kleines Beispiel:
 
 Der Unterricht beginnt und es wird den Schülern mitgeteilt, dass sie eine bestimmte Internetseite aufrufen und sich die darauf befindlichen multimedialen Inhalte ansehen sollen.
 
@@ -36,14 +35,13 @@ Das folgende Video zeigt mit einem protoypen beispielhaft das oben beschriebene 
 
 Im linken (schwarzen) Fenster wird kontinuierlich überprüft, ob eine Internetverbindung besteht. Im rechten Fester ist eine Testseite geöffnet. Insgesamt bietet diese eine Bild als eine vergleichsweise kleine Ressource, ein gif als eine vergleichsweise große und ein Video als eine sehr große Ressource an. 
 
-Im ersten Teil sieht man, wie ein Nutzer alle drei Ressourcen anfragt und darstellt. Zum Zeitpunkt *00:45* wird auf den Bildschirm eines zweiten Nutzers umgeschaltet. Auch hier wird links kontinuierlich die Internetanbindung geprüft. Der Nutzer fragt auch hier alle drei Ressourcen an. Diese werden allerdings nicht über das Internet geladen, sondern vom ersten Nutzer. 
+Im ersten Teil sieht man, wie ein Nutzer alle drei Ressourcen anfragt und darstellt. Zum Zeitpunkt *00:45* wird auf den Bildschirm eines zweiten Nutzers umgeschaltet. Auch hier wird links kontinuierlich die Internetanbindung geprüft. Der Nutzer fragt auch hier alle drei Ressourcen an. Diese werden allerdings nicht über das Internet geladen, sondern vom ersten Nutzer. Dass die Ressourcen wirklich über das lokale Netz geladen werden, sieht man ab *01:10*. Wie links zu sehen ist, besteht ab diesem Zeitpunkt keine Verbindung mehr zum Internet. Dennoch kann das Video abgespielt werden und die benötigten Video Daten werden von dem Computer aus dem lokalen Netzwerk bezogen.
 
-Dass die Ressourcen wirklich über das lokale Netz geladen werden, sieht man ab *01:10*. Wie links zu sehen ist, besteht ab diesem Zeitpunkt keine Verbindung mehr zum Internet. Dennoch kann das Video abgespielt werden.  
+Durch unseren Prototypen zeigt sich, dass unsere grundlegende Idee umsetzbar ist und, dass unter Verwendung von Web-Technologien Daten direkt ausgetauscht werden können. Der große Vorteil ist, dass keine zusätzliche Softwarelösung benötigt wird, jedes Endgerät als Zwischenspeicher fungiert und somit die lokale Internetverbindung entlastet wird. Lässt man die verbleibenden technischen Herausforderungen außen vor, wäre dies deine attrative Lösung die auch außerhalb des Kontextes einer Schule interessant wäre.
 
-Durch unseren Prototypen zeigt sich, dass unsere grundlegende Idee umsetzbar ist und, dass das von uns vorgestellte Beispielszenario durchaus realistisch ist. Insbesondere zeigt der Prototyp: Für die Umsetzung ist keine Installation von zusätzlicher Software notwendig. Ebenfalls merkt der Nutzer nicht, dass die von ihm angefragten Ressourcen nicht aus dem Internet geladen werden.
+## Für die technisch Interessierten: Ein paar Details
 
-## Technische Details
-Bezüglich der konkreten Implementation ergeben sich mehrere Fragen, auf die im Folgenden eingegangen wird. 
+Es folgt eine kleine Auswahl an technischen Fragen und Herausforderungen, die uns während der Umsetzung immer wieder begleitet haben.
 
 #### Wie wird die Zwischenspeicherung der Daten realisiert?
 Für unsere Implementation wird für das Zwischenspeichern von Daten ein *Serviceworker* eingesetzt. *Serviceworker* können wie ein Proxy zwischen dem Webbrowser und dem Webserver agieren, welcher die Webseite bereitstellt.
@@ -69,15 +67,17 @@ Damit eine direkte Verbindung aufgebaut werden kann, müssen über den *Signalin
 
 In dem *Signaling server* selbst wird die Logik abgebildet, wie die Klassen und Schüler miteinader in Verbindung stehen. Implementiert wurde dieser mit *socket.io*, da die native Klassenorganisation und Websocket-Technologie sich nahezu perfekt für unser Szenario anbot.
 
-#### Wie weiß ein einzelner Browser welche anderen im Klassenverbund befindlichen Computer die von ihm angefragte Ressource vorliegen haben?
+#### Wie weiß ein Browser wer die von ihm angefragte Ressource vorliegen hat?
 
 In unserer Implementation wird, sobald eine neuer Besucher der Webseite hinzukommt, sofort ein *DataChannel*, mittels *WebRTC*, *STUN*, *ICE* und *Signaling server* zu allen anderen aktiven Besuchern aufgebaut. 
 Über diesen werden zu zwei Zeitpunkten Informationen darüber ausgetauscht, welche Ressourcen bei dem jeweiligen Nutzer vorliegen: Direkt nach Aufbau des *DataChannels* und immer dann, wenn ein Nutzer eine neue Ressource (aus dem Internet oder lokal) geladen und in seinem Cache gespeichert hat:
 
 <img src="./pictures/SequenceDiagram.svg">
 
-Client 1 (C1) ist der erste der die Webseite aufruft. Er registriert sich beim *Signaling server* und fragt im Anschluss *img.png* an. Da noch niemand anders auf der Seite ist von dem er die Ressource bekommen könnte und er zudem die Ressource nicht in seinem Cache hat, wird *img.png* über das Internet vom Webserver geladen. 
-Client 2 (C2) ruft nun ebenfalls die Webseite auf und registriert sich beim *Signaling server*. Dieser benachrichtigt C1, dass ein neuer Teilnehmer registriert wurde, woraufhin C1 einen Verbindungsaufbau zu C2 einleitet. Steht die direkte Verbindung zwischen C1 und C2, teilt C1 C2 den Inhalt seines aktuellen Caches mit. Fragt C2 *img.png* an, weiß er so, dass er diese von C1 anfragen kann. Hat er *img.png* erhalten, teilt er allen anderen Teilnehmern (in diesem Fall nur C1) mit, dass auch er jetzt *img.png* als Ressource in seinem Cache hat.
+Client 1 (C1) ist der erste der die Webseite aufruft. Er registriert sich beim *Signaling server* und fragt im Anschluss *img.png* an (rot). Da noch niemand anders auf der Seite ist von dem er die Ressource bekommen könnte und er zudem die Ressource nicht in seinem Cache hat, wird *img.png* über das Internet vom Webserver geladen. 
+Client 2 (C2) ruft nun ebenfalls die Webseite auf und registriert sich beim *Signaling server*. Dieser benachrichtigt C1, dass ein neuer Teilnehmer registriert wurde, woraufhin C1 einen Verbindungsaufbau zu C2 einleitet. Steht die direkte Verbindung zwischen C1 und C2 (grün), teilt C1 C2 den Inhalt seines aktuellen Caches mit. Fragt C2 *img.png* an (rot), weiß er so, dass er diese von C1 anfragen kann. Hat er *img.png* erhalten, teilt er allen anderen Teilnehmern (in diesem Fall nur C1) mit, dass auch er jetzt *img.png* als Ressource in seinem Cache hat.
+
+#### Technische Herausforderungen
 
 Hier fehlt noch ein technischer Ausblick!
 - Integrität der Ressourcen (Verhindern: Verbreitung bösartige/manipulierte Inhalte)
