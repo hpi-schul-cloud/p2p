@@ -1,0 +1,827 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>@font-face {
+  font-family: octicons-anchor;
+  src: url(https://cdnjs.cloudflare.com/ajax/libs/octicons/4.4.0/font/octicons.woff) format('woff');
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    width: 980px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+body .markdown-body {
+    padding: 45px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    word-wrap: break-word;
+}
+
+pre {
+    font: 12px Consolas, "Liberation Mono", Menlo, Courier, monospace;
+}
+
+.markdown-body {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  color: #333;
+  font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesans, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-size: 16px;
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.markdown-body a {
+  background-color: transparent;
+}
+
+.markdown-body a:active,
+.markdown-body a:hover {
+  outline: 0;
+}
+
+.markdown-body strong {
+  font-weight: bold;
+}
+
+.markdown-body h1 {
+  font-size: 2em;
+  margin: 0.67em 0;
+}
+
+.markdown-body img {
+  border: 0;
+}
+
+.markdown-body hr {
+  box-sizing: content-box;
+  height: 0;
+}
+
+.markdown-body pre {
+  overflow: auto;
+}
+
+.markdown-body code,
+.markdown-body kbd,
+.markdown-body pre {
+  font-family: monospace, monospace;
+  font-size: 1em;
+}
+
+.markdown-body input {
+  color: inherit;
+  font: inherit;
+  margin: 0;
+}
+
+.markdown-body html input[disabled] {
+  cursor: default;
+}
+
+.markdown-body input {
+  line-height: normal;
+}
+
+.markdown-body input[type="checkbox"] {
+  box-sizing: border-box;
+  padding: 0;
+}
+
+.markdown-body table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+.markdown-body td,
+.markdown-body th {
+  padding: 0;
+}
+
+.markdown-body input {
+  font: 13px / 1.4 Helvetica, arial, nimbussansl, liberationsans, freesans, clean, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+.markdown-body a {
+  color: #4078c0;
+  text-decoration: none;
+}
+
+.markdown-body a:hover,
+.markdown-body a:active {
+  text-decoration: underline;
+}
+
+.markdown-body hr {
+  height: 0;
+  margin: 15px 0;
+  overflow: hidden;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #ddd;
+}
+
+.markdown-body hr:before {
+  display: table;
+  content: "";
+}
+
+.markdown-body hr:after {
+  display: table;
+  clear: both;
+  content: "";
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin-top: 15px;
+  margin-bottom: 15px;
+  line-height: 1.1;
+}
+
+.markdown-body h1 {
+  font-size: 30px;
+}
+
+.markdown-body h2 {
+  font-size: 21px;
+}
+
+.markdown-body h3 {
+  font-size: 16px;
+}
+
+.markdown-body h4 {
+  font-size: 14px;
+}
+
+.markdown-body h5 {
+  font-size: 12px;
+}
+
+.markdown-body h6 {
+  font-size: 11px;
+}
+
+.markdown-body blockquote {
+  margin: 0;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.markdown-body ol ol,
+.markdown-body ul ol {
+  list-style-type: lower-roman;
+}
+
+.markdown-body ul ul ol,
+.markdown-body ul ol ol,
+.markdown-body ol ul ol,
+.markdown-body ol ol ol {
+  list-style-type: lower-alpha;
+}
+
+.markdown-body dd {
+  margin-left: 0;
+}
+
+.markdown-body code {
+  font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  font-size: 12px;
+}
+
+.markdown-body pre {
+  margin-top: 0;
+  margin-bottom: 0;
+  font: 12px Consolas, "Liberation Mono", Menlo, Courier, monospace;
+}
+
+.markdown-body .select::-ms-expand {
+  opacity: 0;
+}
+
+.markdown-body .octicon {
+  font: normal normal normal 16px/1 octicons-anchor;
+  display: inline-block;
+  text-decoration: none;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.markdown-body .octicon-link:before {
+  content: '\f05c';
+}
+
+.markdown-body:before {
+  display: table;
+  content: "";
+}
+
+.markdown-body:after {
+  display: table;
+  clear: both;
+  content: "";
+}
+
+.markdown-body>*:first-child {
+  margin-top: 0 !important;
+}
+
+.markdown-body>*:last-child {
+  margin-bottom: 0 !important;
+}
+
+.markdown-body a:not([href]) {
+  color: inherit;
+  text-decoration: none;
+}
+
+.markdown-body .anchor {
+  display: inline-block;
+  padding-right: 2px;
+  margin-left: -18px;
+}
+
+.markdown-body .anchor:focus {
+  outline: none;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin-top: 1em;
+  margin-bottom: 16px;
+  font-weight: bold;
+  line-height: 1.4;
+}
+
+.markdown-body h1 .octicon-link,
+.markdown-body h2 .octicon-link,
+.markdown-body h3 .octicon-link,
+.markdown-body h4 .octicon-link,
+.markdown-body h5 .octicon-link,
+.markdown-body h6 .octicon-link {
+  color: #000;
+  vertical-align: middle;
+  visibility: hidden;
+}
+
+.markdown-body h1:hover .anchor,
+.markdown-body h2:hover .anchor,
+.markdown-body h3:hover .anchor,
+.markdown-body h4:hover .anchor,
+.markdown-body h5:hover .anchor,
+.markdown-body h6:hover .anchor {
+  text-decoration: none;
+}
+
+.markdown-body h1:hover .anchor .octicon-link,
+.markdown-body h2:hover .anchor .octicon-link,
+.markdown-body h3:hover .anchor .octicon-link,
+.markdown-body h4:hover .anchor .octicon-link,
+.markdown-body h5:hover .anchor .octicon-link,
+.markdown-body h6:hover .anchor .octicon-link {
+  visibility: visible;
+}
+
+.markdown-body h1 {
+  padding-bottom: 0.3em;
+  font-size: 2.25em;
+  line-height: 1.2;
+  border-bottom: 1px solid #eee;
+}
+
+.markdown-body h1 .anchor {
+  line-height: 1;
+}
+
+.markdown-body h2 {
+  padding-bottom: 0.3em;
+  font-size: 1.75em;
+  line-height: 1.225;
+  border-bottom: 1px solid #eee;
+}
+
+.markdown-body h2 .anchor {
+  line-height: 1;
+}
+
+.markdown-body h3 {
+  font-size: 1.5em;
+  line-height: 1.43;
+}
+
+.markdown-body h3 .anchor {
+  line-height: 1.2;
+}
+
+.markdown-body h4 {
+  font-size: 1.25em;
+}
+
+.markdown-body h4 .anchor {
+  line-height: 1.2;
+}
+
+.markdown-body h5 {
+  font-size: 1em;
+}
+
+.markdown-body h5 .anchor {
+  line-height: 1.1;
+}
+
+.markdown-body h6 {
+  font-size: 1em;
+  color: #777;
+}
+
+.markdown-body h6 .anchor {
+  line-height: 1.1;
+}
+
+.markdown-body p,
+.markdown-body blockquote,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body dl,
+.markdown-body table,
+.markdown-body pre {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markdown-body hr {
+  height: 4px;
+  padding: 0;
+  margin: 16px 0;
+  background-color: #e7e7e7;
+  border: 0 none;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 2em;
+}
+
+.markdown-body ul ul,
+.markdown-body ul ol,
+.markdown-body ol ol,
+.markdown-body ol ul {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.markdown-body li>p {
+  margin-top: 16px;
+}
+
+.markdown-body dl {
+  padding: 0;
+}
+
+.markdown-body dl dt {
+  padding: 0;
+  margin-top: 16px;
+  font-size: 1em;
+  font-style: italic;
+  font-weight: bold;
+}
+
+.markdown-body dl dd {
+  padding: 0 16px;
+  margin-bottom: 16px;
+}
+
+.markdown-body blockquote {
+  padding: 0 15px;
+  color: #777;
+  border-left: 4px solid #ddd;
+}
+
+.markdown-body blockquote>:first-child {
+  margin-top: 0;
+}
+
+.markdown-body blockquote>:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body table {
+  display: block;
+  width: 100%;
+  overflow: auto;
+  word-break: normal;
+  word-break: keep-all;
+}
+
+.markdown-body table th {
+  font-weight: bold;
+}
+
+.markdown-body table th,
+.markdown-body table td {
+  padding: 6px 13px;
+  border: 1px solid #ddd;
+}
+
+.markdown-body table tr {
+  background-color: #fff;
+  border-top: 1px solid #ccc;
+}
+
+.markdown-body table tr:nth-child(2n) {
+  background-color: #f8f8f8;
+}
+
+.markdown-body img {
+  max-width: 100%;
+  box-sizing: content-box;
+  background-color: #fff;
+}
+
+.markdown-body code {
+  padding: 0;
+  padding-top: 0.2em;
+  padding-bottom: 0.2em;
+  margin: 0;
+  font-size: 85%;
+  background-color: rgba(0,0,0,0.04);
+  border-radius: 3px;
+}
+
+.markdown-body code:before,
+.markdown-body code:after {
+  letter-spacing: -0.2em;
+  content: "\00a0";
+}
+
+.markdown-body pre>code {
+  padding: 0;
+  margin: 0;
+  font-size: 100%;
+  word-break: normal;
+  white-space: pre;
+  background: transparent;
+  border: 0;
+}
+
+.markdown-body .highlight {
+  margin-bottom: 16px;
+}
+
+.markdown-body .highlight pre,
+.markdown-body pre {
+  padding: 16px;
+  overflow: auto;
+  font-size: 85%;
+  line-height: 1.45;
+  background-color: #f7f7f7;
+  border-radius: 3px;
+}
+
+.markdown-body .highlight pre {
+  margin-bottom: 0;
+  word-break: normal;
+}
+
+.markdown-body pre {
+  word-wrap: normal;
+}
+
+.markdown-body pre code {
+  display: inline;
+  max-width: initial;
+  padding: 0;
+  margin: 0;
+  overflow: initial;
+  line-height: inherit;
+  word-wrap: normal;
+  background-color: transparent;
+  border: 0;
+}
+
+.markdown-body pre code:before,
+.markdown-body pre code:after {
+  content: normal;
+}
+
+.markdown-body kbd {
+  display: inline-block;
+  padding: 3px 5px;
+  font-size: 11px;
+  line-height: 10px;
+  color: #555;
+  vertical-align: middle;
+  background-color: #fcfcfc;
+  border: solid 1px #ccc;
+  border-bottom-color: #bbb;
+  border-radius: 3px;
+  box-shadow: inset 0 -1px 0 #bbb;
+}
+
+.markdown-body .pl-c {
+  color: #969896;
+}
+
+.markdown-body .pl-c1,
+.markdown-body .pl-s .pl-v {
+  color: #0086b3;
+}
+
+.markdown-body .pl-e,
+.markdown-body .pl-en {
+  color: #795da3;
+}
+
+.markdown-body .pl-s .pl-s1,
+.markdown-body .pl-smi {
+  color: #333;
+}
+
+.markdown-body .pl-ent {
+  color: #63a35c;
+}
+
+.markdown-body .pl-k {
+  color: #a71d5d;
+}
+
+.markdown-body .pl-pds,
+.markdown-body .pl-s,
+.markdown-body .pl-s .pl-pse .pl-s1,
+.markdown-body .pl-sr,
+.markdown-body .pl-sr .pl-cce,
+.markdown-body .pl-sr .pl-sra,
+.markdown-body .pl-sr .pl-sre {
+  color: #183691;
+}
+
+.markdown-body .pl-v {
+  color: #ed6a43;
+}
+
+.markdown-body .pl-id {
+  color: #b52a1d;
+}
+
+.markdown-body .pl-ii {
+  background-color: #b52a1d;
+  color: #f8f8f8;
+}
+
+.markdown-body .pl-sr .pl-cce {
+  color: #63a35c;
+  font-weight: bold;
+}
+
+.markdown-body .pl-ml {
+  color: #693a17;
+}
+
+.markdown-body .pl-mh,
+.markdown-body .pl-mh .pl-en,
+.markdown-body .pl-ms {
+  color: #1d3e81;
+  font-weight: bold;
+}
+
+.markdown-body .pl-mq {
+  color: #008080;
+}
+
+.markdown-body .pl-mi {
+  color: #333;
+  font-style: italic;
+}
+
+.markdown-body .pl-mb {
+  color: #333;
+  font-weight: bold;
+}
+
+.markdown-body .pl-md {
+  background-color: #ffecec;
+  color: #bd2c00;
+}
+
+.markdown-body .pl-mi1 {
+  background-color: #eaffea;
+  color: #55a532;
+}
+
+.markdown-body .pl-mdr {
+  color: #795da3;
+  font-weight: bold;
+}
+
+.markdown-body .pl-mo {
+  color: #1d3e81;
+}
+
+.markdown-body kbd {
+  display: inline-block;
+  padding: 3px 5px;
+  font: 11px Consolas, "Liberation Mono", Menlo, Courier, monospace;
+  line-height: 10px;
+  color: #555;
+  vertical-align: middle;
+  background-color: #fcfcfc;
+  border: solid 1px #ccc;
+  border-bottom-color: #bbb;
+  border-radius: 3px;
+  box-shadow: inset 0 -1px 0 #bbb;
+}
+
+.markdown-body .plan-price-unit {
+  color: #767676;
+  font-weight: normal;
+}
+
+.markdown-body .task-list-item {
+  list-style-type: none;
+}
+
+.markdown-body .task-list-item+.task-list-item {
+  margin-top: 3px;
+}
+
+.markdown-body .task-list-item input {
+  margin: 0 0.35em 0.25em -1.6em;
+  vertical-align: middle;
+}
+
+.markdown-body .plan-choice {
+  padding: 15px;
+  padding-left: 40px;
+  display: block;
+  border: 1px solid #e0e0e0;
+  position: relative;
+  font-weight: normal;
+  background-color: #fafafa;
+}
+
+.markdown-body .plan-choice.open {
+  background-color: #fff;
+}
+
+.markdown-body .plan-choice.open .plan-choice-seat-breakdown {
+  display: block;
+}
+
+.markdown-body .plan-choice-free {
+  border-radius: 3px 3px 0 0;
+}
+
+.markdown-body .plan-choice-paid {
+  border-radius: 0 0 3px 3px;
+  border-top: 0;
+  margin-bottom: 20px;
+}
+
+.markdown-body .plan-choice-radio {
+  position: absolute;
+  left: 15px;
+  top: 18px;
+}
+
+.markdown-body .plan-choice-exp {
+  color: #999;
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.markdown-body .plan-choice-seat-breakdown {
+  margin-top: 10px;
+  display: none;
+}
+
+.markdown-body :checked+.radio-label {
+  z-index: 1;
+  position: relative;
+  border-color: #4078c0;
+}
+
+@media print {
+  body .markdown-body {
+    padding: 0;
+    border: none;
+  }
+}
+</style><title>blogpost</title></head><body><article class="markdown-body"><h1>
+<a id="user-content-schulen-digitalisierung-langsames-internet-langsames-arbeiten" class="anchor" href="#schulen-digitalisierung-langsames-internet-langsames-arbeiten" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Schulen, Digitalisierung, langsames Internet, langsames Arbeiten?</h1>
+<p>Wer kennt es nicht? Der Unterricht ist gut vorbereitet und Aufgabe der Schüler ist es unter Zuhilfenahme des Internets selbständig Unterrichtsinhalte zu recherchieren. Hierzu sollen ausgewählte Videos und andere interaktive Webseiten studiert werden. Einziges Problem: Das Internet ist viel zu langsam, die Schüler können die Videos nur Stück für Stück ansehen, auf den interaktiven Seiten werden die Bilder nur nach und nach geladen. Die Schüler sind genervt, die Lernbereitschaft sinkt und somit auch das Potential der eigentlich gut durchdachten Unterrichtsstunde.</p>
+<p>Auch wir vom Hasso Plattner Institut waren mal in der Schule und kennen genau dieses Problem; Zeit also sich eine Lösung zu überlegen.</p>
+<h2>
+<a id="user-content-verbesserungsbedarf" class="anchor" href="#verbesserungsbedarf" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Verbesserungsbedarf!</h2>
+<p>Die Ursache für das oben beschriebene Szenario ist so gut wie immer auf eine zu geringe zur Verfügung stehenden Datenrate der Internetanbindung zurückzuführen. Dieser Flaschenhals lässt sich aufgrund des mangelnden Breitbandausbaus oder mangelnder finanzieller Mittel der Schulen oft nicht lösen.</p>
+<p>Die grundlegende Idee besteht deshalb darin, die Internetanbindung zu entlasten. Da oft alle Schüler nahezu die gleichen Ressourcen aus dem Internet anfragen, könnte dies dadurch realisiert werden, dass die Inhalte im lokalen Netzwerk verteilt werden. Unter der Annahme das in einer Schulklasse etwa 30 Schüler sind, könnte die Internetanbindung um bis zu Faktor 30 entlastet werden. Beachtet man zusätzlich, dass nicht nur eine Klasse gleichzeitig die Internetanbindung der Schule nutzt, ergibt sich ein noch größeres Optimierungspotential.</p>
+<p>Eine grafische Gegenüberstellung der aktuellen bzw. der Situation, wie sie durch lokale Datenübertragung erreicht werden könnte, zeigen die folgenden beiden Abbildungen.</p>
+<table>
+<thead>
+<tr>
+<th align="center">Alle Ressourcen werden aus dem Internet geladen</th>
+<th align="center">Ressourcen werden im lokalen Netzwerk verteilt</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center"><a href="/Users/nils/Studium/Materialien%201.Semester/advanced_web/openHPI/blogpost/pictures/current_situation.svg" target="_blank" rel="noopener noreferrer"><img src="/Users/nils/Studium/Materialien%201.Semester/advanced_web/openHPI/blogpost/pictures/current_situation.svg" alt="" style="max-width:100%;"></a></td>
+<td align="center"><a href="/Users/nils/Studium/Materialien%201.Semester/advanced_web/openHPI/blogpost/pictures/goal.svg" target="_blank" rel="noopener noreferrer"><img src="/Users/nils/Studium/Materialien%201.Semester/advanced_web/openHPI/blogpost/pictures/goal.svg" alt="" style="max-width:100%;"></a></td>
+</tr>
+</tbody>
+</table>
+<p>Insgesamt geht es darum die Nutzbarkeit von Internetseiten mit datenintensiven Inhalten deutlich zu steigern. Wichtig hierfür ist, dass die lokale Verbreitung der Inhalte schneller abläuft, als das Laden dieser aus dem Internet.</p>
+<p>Um den Wartungsaufwand seitens der Schulen so gering wie möglich zu halten, ist es ebenfalls wünschenswert, dass keine zusätzliche Software installiert werden muss. Im Endeffekt soll keiner der Nutzer, weder Schüler noch Lehrer,  mitbekommen, dass etwas anders abläuft. Außer natürlich, dass die Inhalte schneller geladen werden und die entsprechende Internetseite so deutlich benutzbarer ist.</p>
+<h2>
+<a id="user-content-beispielszenario" class="anchor" href="#beispielszenario" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Beispielszenario</h2>
+<p>Der Unterricht beginnt und es wird den Schülern mitgeteilt, dass sie eine bestimmte Internetseite aufrufen und sich die darauf befindlichen multimedialen Inhalte ansehen sollen.</p>
+<p>Martin ist einer der ersten in der Klasse der ein Video zum gegebenen Thema findet und anguckt. In der Reihe hinter ihm wird Sina darauf aufmerksam und möchte sich dieses ebenfalls ansehen. Normalerweise würden Martin wie auch Sina das gesamte Video aus dem Internet anfragen und herunterladen. Doch warum fragt Sina's Computer nicht einfach bei Martin nach dem Video? Dieser hat dies und viele andere Dateien von der Internetseite ja bereits geladen. Genau dort liegt unserer Ansatz: Die Computer innerhalb einer Klasse sollen einen Verband bilden und Ressourcen jeglicher Art für die Mitschüler zur Verfügung stellen und diese im lokalen Netzwerk verteilen.</p>
+<h2>
+<a id="user-content-ein-prototyp" class="anchor" href="#ein-prototyp" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Ein Prototyp</h2>
+<p>Das folgende Video zeigt mit einem Protoypen beispielhaft das oben beschriebene Szenario:</p>
+<div align="center">
+  <a href="https://drive.google.com/open?id=1MoI6pnDDNAFQpy4c0LvSPyTjphW0AUpR" rel="nofollow"><img src="/Users/nils/Studium/Materialien%201.Semester/advanced_web/openHPI/blogpost/pictures/video.png" alt="IMAGE ALT TEXT" style="max-width:100%;"></a>
+</div>
+<p>Im linken (schwarzen) Fenster wird kontinuierlich überprüft, ob eine Internetverbindung besteht. Im rechten Fester ist eine Testseite geöffnet. Insgesamt bietet diese eine Bild als eine vergleichsweise kleine Ressource, ein gif als eine vergleichsweise große und ein Video als eine sehr große Ressource an.</p>
+<p>Im ersten Teil sieht man, wie ein Nutzer alle drei Ressourcen anfragt und darstellt. Zum Zeitpunkt <em>00:45</em> wird auf den Bildschirm eines zweiten Nutzers umgeschaltet. Auch hier wird links kontinuierlich die Internetanbindung geprüft. Der Nutzer fragt auch hier alle drei Ressourcen an. Diese werden allerdings nicht über das Internet geladen, sondern vom ersten Nutzer. Dass die Ressourcen wirklich über das lokale Netz geladen werden, sieht man ab <em>01:10</em>. Wie links zu sehen ist, besteht ab diesem Zeitpunkt keine Verbindung mehr zum Internet. Dennoch kann das Video abgespielt werden und die benötigten Video Daten werden von dem Computer aus dem lokalen Netzwerk bezogen.</p>
+<p>Durch unseren Prototypen zeigt sich, dass unsere grundlegende Idee umsetzbar ist und, dass unter Verwendung von Web-Technologien Daten direkt ausgetauscht werden können. Der große Vorteil ist, dass keine zusätzliche Softwarelösung benötigt wird, jedes Endgerät als Zwischenspeicher fungiert und somit die lokale Internetverbindung entlastet wird. Lässt man die verbleibenden technischen Herausforderungen außen vor, wäre dies deine attraktive Lösung die auch außerhalb des Kontextes einer Schule interessant wäre.</p>
+<h2>
+<a id="user-content-für-die-technisch-interessierten-ein-paar-details" class="anchor" href="#f%C3%BCr-die-technisch-interessierten-ein-paar-details" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Für die technisch Interessierten: Ein paar Details</h2>
+<p>Es folgt eine kleine Auswahl an technischen Fragen und Herausforderungen, die uns während der Umsetzung immer wieder begleitet haben.</p>
+<h4>
+<a id="user-content-wie-wird-die-zwischenspeicherung-der-daten-realisiert" class="anchor" href="#wie-wird-die-zwischenspeicherung-der-daten-realisiert" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Wie wird die Zwischenspeicherung der Daten realisiert?</h4>
+<p>Für unsere Implementation wird für das Zwischenspeichern von Daten ein <em>Serviceworker</em> eingesetzt. <em>Serviceworker</em> können wie ein Proxy zwischen dem Webbrowser und dem Webserver agieren, welcher die Webseite bereitstellt.
+Stellt ein Browser eine Anfrage, so wird diese vom <em>Serviceworker</em> abgefangen. Der <em>Serviceworker</em> schaut zunächst in seinem Cache, der sog. <em>IndexDB</em>, ob er die gestellte Anfrage beantworten kann. Ist dies nicht der Fall, so wird die Anfrage an den Webserver weitergeleitet. Wird die gleiche Anfrage nochmals gestellt, kann diese aus dem Cache beantwortet werden, da gestellte Anfragen eine gewisse Zeit lang zwischengespeichert werden.</p>
+<p align="center">
+  <a href="/Users/nils/Studium/Materialien%201.Semester/advanced_web/openHPI/blogpost/pictures/ServiceWorker.svg" target="_blank" rel="noopener noreferrer"><img src="/Users/nils/Studium/Materialien%201.Semester/advanced_web/openHPI/blogpost/pictures/ServiceWorker.svg" style="max-width:100%;"></a>
+</p>
+<h4>
+<a id="user-content-welche-technologie-wird-zum-austausch-der-daten-genutzt" class="anchor" href="#welche-technologie-wird-zum-austausch-der-daten-genutzt" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Welche Technologie wird zum Austausch der Daten genutzt?</h4>
+<p>Die von uns eingesetzte Technologie zur Übertragung von Daten zwischen Browsern ist <em>WebRTC</em>. <em>WebRTC</em> ist ein offener Standard und ermöglicht es Browser paarweise zwecks Datenaustausch zu verbinden. Der große Vorteil dieser Technologie ist, dass sie direkt von modernen Browsern unterstützt wird, wodurch keine zusätzliche Software installiert werden muss. Konkret wird von uns ein sog. <em>DataChannel</em> genutzt.</p>
+<h4>
+<a id="user-content-wie-wird-eine-verbindung-zwischen-den-browsern-zweier-schüler-aufgebaut" class="anchor" href="#wie-wird-eine-verbindung-zwischen-den-browsern-zweier-sch%C3%BCler-aufgebaut" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Wie wird eine Verbindung zwischen den Browsern zweier Schüler aufgebaut?</h4>
+<p>Für den Datenaustausch müssen wechselseitig <em>DataChannel</em> zueinander aufgebaut werden. Die Ausgangslage ist, dass die Schüler wissen, dass es den anderen gibt, aber nicht wie der jeweils andere zu erreichen ist. Um diese Problematik zu lösen, existiert ein Vermittlungsserver (<em>Signaling server</em>).</p>
+<p>Als erstes werden Informationen, über die Verbindung die aufgebaut werden soll, an den <em>Signaling server</em> gesendet. Technisch wird ein <em>SDP-offer</em> gesendet, wobei SDP für <em>Session Description Protocol</em> steht. Dieses <em>SDP-offer</em> leitet der <em>Signaling server</em> an die Schüler in der Klasse/Schule weiter. Geantwortet wird mit einer <em>SDP-answere</em>, welche Informationen über die abgestimmte Verbindung enthält und über den <em>Signaling server</em> zurück geleitet wird.</p>
+<p>Damit eine direkte Verbindung aufgebaut werden kann, müssen über den <em>Signaling server</em> noch weitere Informationen wie ICE-Kandidaten ausgetauscht werden. ICE steht hierbei für Interactive Conectivity Establishment und ist fester Bestandteil von <em>WebRTC</em>. Es ist für den Aufbau der Browser-zu-Browser-Verbindung verantwortlich. ICE-Kandidaten enthalten hauptsächlich Informationen darüber wie ein bestimmter Nutzer erreichbar ist (also z.B. private oder öffentliche IP-Adresse). Ermittelt werden diese ICE-Kandidaten mithilfe eines STUN-Servers und dem dazugehörigen Session Traversal Utilities for NAT (STUN) Protokoll. Wie der Name des Protokolls schon verrät, wird es vor allem benötigt um auch Nutzer erreichen zu können die keine eigene öffentliche IP-Adresse besitzen, bei denen also Network address translation (NAT) eingesetzt wird. Dies ist aufgrund der mangelnden Anzahl an IPv4-Adressen bei fast jedem Internetnutzer der Fall.</p>
+<h4>
+<a id="user-content-was-steckt-hinter-dem-signaling-server" class="anchor" href="#was-steckt-hinter-dem-signaling-server" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Was steckt hinter dem <em>Signaling server</em>?</h4>
+<p>In dem <em>Signaling server</em> selbst wird die Logik abgebildet, wie die Klassen und Schüler miteinander in Verbindung stehen. Implementiert wurde dieser mit <em>socket.io</em>, da die native Klassenorganisation und Websocket-Technologie sich nahezu perfekt für unser Szenario anbot.</p>
+<h4>
+<a id="user-content-wie-weiß-ein-browser-wer-die-von-ihm-angefragte-ressource-vorliegen-hat" class="anchor" href="#wie-wei%C3%9F-ein-browser-wer-die-von-ihm-angefragte-ressource-vorliegen-hat" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Wie weiß ein Browser wer die von ihm angefragte Ressource vorliegen hat?</h4>
+<p>In unserer Implementation wird, sobald eine neuer Besucher der Webseite hinzukommt, sofort ein <em>DataChannel</em>, mittels <em>WebRTC</em>, <em>STUN</em>, <em>ICE</em> und <em>Signaling server</em> zu allen anderen aktiven Besuchern aufgebaut.
+Über diesen werden zu zwei Zeitpunkten Informationen darüber ausgetauscht, welche Ressourcen bei dem jeweiligen Nutzer vorliegen: Direkt nach Aufbau des <em>DataChannels</em> und immer dann, wenn ein Nutzer eine neue Ressource (aus dem Internet oder lokal) geladen und in seinem Cache gespeichert hat:</p>
+<p><a href="/Users/nils/Studium/Materialien%201.Semester/advanced_web/openHPI/blogpost/pictures/SequenceDiagram.svg" target="_blank" rel="noopener noreferrer"><img src="/Users/nils/Studium/Materialien%201.Semester/advanced_web/openHPI/blogpost/pictures/SequenceDiagram.svg" style="max-width:100%;"></a></p>
+<p>Client 1 (C1) ist der erste der die Webseite aufruft. Er registriert sich beim <em>Signaling server</em> und fragt im Anschluss <em>img.png</em> an (rot). Da noch niemand anders auf der Seite ist von dem er die Ressource bekommen könnte und er zudem die Ressource nicht in seinem Cache hat, wird <em>img.png</em> über das Internet vom Webserver geladen.
+Client 2 (C2) ruft nun ebenfalls die Webseite auf und registriert sich beim <em>Signaling server</em>. Dieser benachrichtigt C1, dass ein neuer Teilnehmer registriert wurde, woraufhin C1 einen Verbindungsaufbau zu C2 einleitet. Steht die direkte Verbindung zwischen C1 und C2 (grün), teilt C1 C2 den Inhalt seines aktuellen Caches mit. Fragt C2 <em>img.png</em> an (rot), weiß er so, dass er diese von C1 anfragen kann. Hat er <em>img.png</em> erhalten, teilt er allen anderen Teilnehmern (in diesem Fall nur C1) mit, dass auch er jetzt <em>img.png</em> als Ressource in seinem Cache hat.</p>
+<h4>
+<a id="user-content-noch-offene-technische-herausforderungen" class="anchor" href="#noch-offene-technische-herausforderungen" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Noch offene technische Herausforderungen</h4>
+<p>Alle technischen Fragestellungen, die sich bezüglich der grundsätzlichen Funktionalität unserer Softwarelösung stellen wurden oben erläutert. Bevor ein Einsatz in einem Realen Umfeld vollzogen wird, sollten aber noch weitere technische Details beachtet werden. Die wichtigsten noch zu lösenden technischen Herausforderungen und mögliche Lösungsansätze hierfür sind im Folgenden aufgeführt.</p>
+<ul>
+<li>
+<p>Serialisierung der Daten:
+Wie oben erwähnt wird für den Austausch von Daten der von <em>WebRTC</em> angebotene <em>DataChannel</em> genutzt, welcher das <em>Stream Control Transmission Protocol</em> kurz SCTP verwendet. Problem hierbei ist, dass dieses Protokoll ursprünglich für die Übertragung von Kontrollinformationen designt wurde und deshalb für die Kompatibilität verschiedener Browser eine Paketgröße von 16kiB nicht überschritten werden sollte. In unserem Kontext ist es aber notwendig auch größere Dateien zu übertragen, weshalb aktuell viele kleine Datenpakete übertragen werden müssen, wodurch ein großer Overhead entsteht.</p>
+</li>
+<li>
+<p>Integrität der Daten:
+Es muss verhindert werden, dass ein bösartiger Nutzer manipulierte Ressourcen im lokalen Netzwerk verbreitet.
+Hierzu kann die Integritätsüberprüfung von HTML5 verwendet werden, bei der die Integrität der Daten mittels einer Prüfsumme sichergestellt wird.</p>
+</li>
+<li>
+<p>Verteilung der Daten in größeren Gruppen:
+Für den Austausch von Daten bilden aktuell alle Teilnehmer ein vollständig vermaschtes Netz. Bei einer Klassengröße von 30 hat also jeder Browser 29 offene <em>DataChannels</em>.
+Denkt man beispielsweise an eine Vollversammlung mit etwa 1000 Schülern, kann die große Anzahl der offenen <em>DataChannels</em> zu Problemen führen. In solche Szenarien sollt eine andere Topologie eingesetzt werden um die Anzahl der offenen <em>DataChannels</em> zu reduzieren. Am sinnvollsten wäre hier eine baumartige oder irregulär vermaschte Topologie.</p>
+</li>
+<li>
+<p>Evaluierung der Performance:
+Ziel unserer Softwarelösung ist es, die Benutzbarkeit von Internetseiten in Anwesenheit einer schlechten Internetanbindung zu verbessern.
+Interessant wäre es, den Performancezuwachs zu evaluieren, der durch den Einsatz unserer Lösung hervorgerufen wird. So könnte auch evaluiert werden, bis zu welcher zur Verfügung stehenden Datenrate der Einsatz unserer Lösung sinnvoll ist.</p>
+</li>
+<li>
+<p>Verwaltung des Caches:
+Wie bereits beschrieben, setzen wir für die Zwischenspeicherung der Daten einen <em>Serviceworker</em> ein, welcher wiederum die <em>IndexDB</em> verwaltet.
+Für die Zukunft sollte eine Lösung dafür gefunden werden ein sinnvolles Zeitfenster festzulegen in dem die Zwischengespeicherten Daten gültig sind, damit keine veralteten Daten ausgetauscht werden.
+Ein weiterer Punkt ist die Größe des Caches. Hier sollte evaluiert werden, wie die Maximalgröße des Caches und dessen Performance dabei ist. In Anlehnung hieran sollte eine Obergrenze für die menge der zwischengespeicherten Daten festgelegt werden.</p>
+</li>
+</ul>
+</article></body></html>
