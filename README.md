@@ -130,3 +130,4 @@ addressing that [issue](https://github.com/w3c/webrtc-pc/issues/230).
 - Johannes Maximilian Kroschewski
 - Tim Friedrich
 - Nils Straßenburg
+- Jan Renz (Academic Lead)
