@@ -57,8 +57,6 @@ To give a broad idea about the architecture:
   <img src="documentation/pictures/sw_architecture.svg">
 </p>
 
-<!-- ![Service Worker Architecture](documentation/pictures/sw_architecture.svg) -->
-
 The service worker intercepts the network request, checks its cache and peers and if 
 someone is able to answer the request it will send a request to that peer.
 By design, service worker are not able to interact via WebRTC directly. Therefore, 
