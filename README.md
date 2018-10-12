@@ -53,7 +53,9 @@ we recommend using an [letsencrypt-nginx-container](https://hub.docker.com/r/jrc
 ## Architecture
 To give a broad idea about the architecture:
 
-![Service Worker Architecture](documentation/pictures/sw_architecture.svg)
+<p align="center">
+  <img src="documentation/pictures/sw_architecture.svg">
+</p>
 
 The service worker intercepts the network request, checks its cache and peers and if 
 someone is able to answer the request it will send a request to that peer.
