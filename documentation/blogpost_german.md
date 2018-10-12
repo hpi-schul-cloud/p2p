@@ -7,7 +7,7 @@ Auch wir vom Hasso Plattner Institut waren mal in der Schule und kennen genau di
 ## Verbesserungsbedarf!
 Die Ursache für das oben beschriebene Szenario ist so gut wie immer auf eine zu geringe zur Verfügung stehenden Datenrate der Internetanbindung zurückzuführen. Dieser Flaschenhals lässt sich aufgrund des mangelnden Breitbandausbaus oder mangelnder finanzieller Mittel der Schulen oft nicht lösen. 
 
-Die grundlegende Idee besteht deshalb darin, die Internetanbindung zu entlasten. Da oft alle Schüler nahezu die gleichen Ressourcen aus dem Internet anfragen, könnte dies dadurch realisiert werden, dass die Inhalte im lokalen Netzwerk verteilt werden. Unter der Annahme das in einer Schulklasse etwa 30 Schüler sind, könnte die Internetanbindung um bis zu Faktor 30 entlastet werden. Beachtet man zusätzlich, dass nicht nur eine Klasse gleichzeitig die Internetanbindung der Schule nutzt, ergibt sich ein noch größeres Optimierungspotential.
+Die grundlegende Idee besteht deshalb darin, die Internetanbindung zu entlasten. Da oft alle Schüler nahezu die gleichen Ressourcen aus dem Internet anfragen, könnte dies dadurch realisiert werden, dass die Inhalte im lokalen Netzwerk verteilt werden. Unter der Annahme, dass in einer Schulklasse etwa 30 Schüler sind, könnte die Internetanbindung um bis zu Faktor 30 entlastet werden. Beachtet man zusätzlich, dass nicht nur eine Klasse gleichzeitig die Internetanbindung der Schule nutzt, ergibt sich ein noch größeres Optimierungspotential.
 
 Eine grafische Gegenüberstellung der aktuellen bzw. der Situation, wie sie durch lokale Datenübertragung erreicht werden könnte, zeigen die folgenden beiden Abbildungen.
 
@@ -33,11 +33,11 @@ Das folgende Video zeigt mit einem Protoypen beispielhaft das oben beschriebene 
   <a href="https://drive.google.com/open?id=1MoI6pnDDNAFQpy4c0LvSPyTjphW0AUpR"><img src="./pictures/video.png" alt="IMAGE ALT TEXT"></a>
 </div>
 
-Im linken (schwarzen) Fenster wird kontinuierlich überprüft, ob eine Internetverbindung besteht. Im rechten Fester ist eine Testseite geöffnet. Insgesamt bietet diese eine Bild als eine vergleichsweise kleine Ressource, ein gif als eine vergleichsweise große und ein Video als eine sehr große Ressource an. 
+Im linken (schwarzen) Fenster wird kontinuierlich überprüft, ob eine Internetverbindung besteht. Im rechten Fester ist eine Testseite geöffnet. Insgesamt bietet diese ein Bild als eine vergleichsweise kleine Ressource, ein gif als eine vergleichsweise große und ein Video als eine sehr große Ressource an. 
 
 Im ersten Teil sieht man, wie ein Nutzer alle drei Ressourcen anfragt und darstellt. Zum Zeitpunkt *00:45* wird auf den Bildschirm eines zweiten Nutzers umgeschaltet. Auch hier wird links kontinuierlich die Internetanbindung geprüft. Der Nutzer fragt auch hier alle drei Ressourcen an. Diese werden allerdings nicht über das Internet geladen, sondern vom ersten Nutzer. Dass die Ressourcen wirklich über das lokale Netz geladen werden, sieht man ab *01:10*. Wie links zu sehen ist, besteht ab diesem Zeitpunkt keine Verbindung mehr zum Internet. Dennoch kann das Video abgespielt werden und die benötigten Video Daten werden von dem Computer aus dem lokalen Netzwerk bezogen.
 
-Durch unseren Prototypen zeigt sich, dass unsere grundlegende Idee umsetzbar ist und, dass unter Verwendung von Web-Technologien Daten direkt ausgetauscht werden können. Der große Vorteil ist, dass keine zusätzliche Softwarelösung benötigt wird, jedes Endgerät als Zwischenspeicher fungiert und somit die lokale Internetverbindung entlastet wird. Lässt man die verbleibenden technischen Herausforderungen außen vor, wäre dies deine attraktive Lösung die auch außerhalb des Kontextes einer Schule interessant wäre.
+Durch unseren Prototypen zeigt sich, dass unsere grundlegende Idee umsetzbar ist und, dass unter Verwendung von Web-Technologien Daten direkt ausgetauscht werden können. Der große Vorteil ist, dass keine zusätzliche Softwarelösung benötigt wird, jedes Endgerät als Zwischenspeicher fungiert und somit die lokale Internetverbindung entlastet wird. Lässt man die verbleibenden technischen Herausforderungen außen vor, wäre dies eine attraktive Lösung die auch außerhalb des Kontextes einer Schule interessant wäre.
 
 ## Für die technisch Interessierten: Ein paar Details
 
