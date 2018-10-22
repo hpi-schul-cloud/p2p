@@ -7,7 +7,8 @@
     "babel": "build/babel.sh",
     "minify": "build/minify.sh",
     "clean": "rm -rf ./build/tmp",
-    "test": "karma start karma.conf.js"
+    "test": "karma start karma.conf.js",
+    "build": "build/babel.sh && build/minify.sh"
   },
   "author": "",
   "license": "ISC",

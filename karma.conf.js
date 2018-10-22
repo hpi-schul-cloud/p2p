@@ -19,7 +19,7 @@ module.exports = function(config) {
       'web_app/js/*.js',
       'http://localhost:8080/socket.io/socket.io.js'
     ],
-    
+
     crossOriginAttribute: false,
 
     client: {
@@ -35,6 +35,7 @@ module.exports = function(config) {
 
     // list of files / patterns to exclude
     exclude: [
+      'web_app/js/videojs-hlsjs.js'
     ],
 
 

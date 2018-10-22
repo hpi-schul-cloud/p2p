@@ -39,42 +39,50 @@ class ServiceWorkerMiddleware {
     );
   }
 
+  _onServiceWorkerMessage(event) {
+    this.log('received request for: %o', event.data);
+
+    if (event.data.type === 'update') {
+      this._onUpdate(event.data.hash);
+    } else if (event.data.type === 'request') {
+      const reply = response => {
+        this.log('have received something: %s', response);
+        event.ports[0].postMessage(response);
+      };
+      this._onRequest(event.data.hash, reply);
+    } else {
+      this.log('cant match request!');
+    }
+  }
+
+  _onClientReady() {
+    const msg = { type: 'status', msg: 'ready' };
+    this.messageToServiceWorker(msg);
+  }
+
+  _onRequestCache(event) {
+    const msg = { type: "cache" };
+    this.messageToServiceWorker(msg).then(cachedResources => {
+      event.detail(cachedResources);
+    });
+  }
+
+  _onRequestResource(event) {
+    const msg = { type: "resource", resource: event.detail.hash };
+
+    this.messageToServiceWorker(msg).then(resource => {
+      event.detail.cb(resource);
+    });
+  }
+
   _initListeners() {
-    navigator.serviceWorker.addEventListener('message', function(event) {
-      this.log('received request for: %o', event.data);
+    navigator.serviceWorker.addEventListener('message', this._onServiceWorkerMessage.bind(this));
 
-      if (event.data.type === 'update') {
-        this._onUpdate(event.data.hash);
-      } else if (event.data.type === 'request') {
-        const reply = response => {
-          this.log('have received something: %s', response);
-          event.ports[0].postMessage(response);
-        };
-        this._onRequest(event.data.hash, reply);
-      } else {
-        this.log('cant match request!');
-      }
-    }.bind(this));
+    document.addEventListener('sw:clientReady', this._onClientReady.bind(this));
 
-    document.addEventListener('sw:clientReady', function(event){
-      const msg = { type: 'status', msg: 'ready' };
-      this.messageToServiceWorker(msg);
-    }.bind(this));
+    document.addEventListener('sw:onRequestCache', this._onRequestCache.bind(this));
 
-    document.addEventListener('sw:onRequestCache', function(event){
-      const msg = { type: "cache" };
-      this.messageToServiceWorker(msg).then(cachedResources => {
-        event.detail(cachedResources);
-      });
-    }.bind(this));
-
-    document.addEventListener('sw:onRequestResource', function(event){
-      const msg = { type: "resource", resource: event.detail.hash };
-
-      this.messageToServiceWorker(msg).then(resource => {
-        event.detail.cb(resource);
-      });
-    }.bind(this));
+    document.addEventListener('sw:onRequestResource', this._onRequestResource.bind(this));
   }
 
   messageToServiceWorker(msg) {
