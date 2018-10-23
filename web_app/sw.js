@@ -1,8 +1,5 @@
 const CACHE_NAME = 'my-site-cache-v1';
 const version = '1.2.3';
-// const clientState = {};
-let hasClientConnection = false;
-// const maxRetryCount = 300;
 const cachingEnabled = false;
 const urlsToCache = [
   '/img/',
@@ -16,28 +13,9 @@ self.addEventListener('install', function(event) {
 });
 
 self.addEventListener('activate', function(event) {
-  event.waitUntil(self.clients.claim()); // Become available to all pages
+  self.clients.claim(); // Become available to all pages
+  event.waitUntil(self.skipWaiting());
 });
-
-// async function sleep(ms) {
-//   return new Promise(resolve => setTimeout(resolve, ms));
-// }
-//
-// async function waitForClient(client, tryCount) {
-//   if (maxRetryCount === tryCount) {
-//     return false;
-//   }
-//   if (clientState[client.id] === 'ready') {
-//     return true;
-//   }
-//   await sleep(200);
-//   console.log('wait for client');
-//   return waitForClient(client, tryCount + 1);
-// }
-
-// function clientIsReady(client) {
-//   return clientState[client.id] === 'ready';
-// }
 
 function sendMessageToClient(msg, clientID) {
   return new Promise(async function(resolve, reject) {
@@ -94,17 +72,13 @@ function getFromCache(key) {
 }
 
 async function getFromClient(clientId, hash) {
+  console.log('ask client to get: ', hash);
+  const msg = {type: 'request', hash};
+  const message = await sendMessageToClient(msg, clientId);
 
-  if(hasClientConnection){
-    console.log('ask client to get: ', hash);
-    const msg = {type: 'request', hash};
-    const message = await sendMessageToClient(msg, clientId);
+  if (message.data)
+    return new Response(message.data);
 
-    if (message.data)
-      return new Response(message.data);
-  } else {
-    console.log('client not ready yet');
-  }
   return undefined;
 }
 
@@ -183,9 +157,7 @@ self.addEventListener('fetch', function(event) {
 self.addEventListener('message', function(event) {
   const msg = event.data;
 
-  if (msg.type === 'status' && msg.msg === 'ready') {
-    hasClientConnection = true;
-  } else if (msg.type === 'cache') {
+  if (msg.type === 'cache') {
     getCacheKeys().then(keys => {
       event.ports[0].postMessage(keys);
     });
