@@ -87,8 +87,4 @@ describe('Middleware', function() {
     let x = await middleware.messageToServiceWorker({});
     expect(x).to.equal(undefined)
   })
-  it('resolves not to undefined', async function() {
-    let x = await middleware.messageToServiceWorker({});
-    expect(x).to.equal(undefined)
-  })
 })
