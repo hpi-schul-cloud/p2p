@@ -1,4 +1,4 @@
-describe('Peer', function() {
+describe('Utils', function() {
 
   describe('#toHex', function(){
     it('returns the correct hexCodes', function(){
