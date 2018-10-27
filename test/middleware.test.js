@@ -3,27 +3,22 @@ describe('Middleware', function() {
   var msg = { hash: 'test', cb: 'cb' };
 
   beforeEach(function() {
+    ServiceWorkerMiddleware.prototype._initListeners = function() {}
     middleware = new ServiceWorkerMiddleware();
   })
 
   it('dispatchs peer:onRequestResource', function(done){
-    this.timeout(1000); //timeout with an error if done() isn't called within one second
-
-    document.addEventListener('peer:onRequestResource', function(event){
+    ensureEvent('peer:onRequestResource', done, msg, function(event, msg){
       expect(event.detail.hash).to.equal(msg.hash);
       expect(event.detail.cb).to.equal(msg.cb);
-      done();
     });
 
     middleware._onRequest('test', 'cb');
   })
 
   it('dispatchs peer:onUpdatePeers', function(done) {
-    this.timeout(1000);
-
-    document.addEventListener('peer:onUpdatePeers', function(event){
+    ensureEvent('peer:onUpdatePeers', done, msg, function(event){
       expect(event.detail).to.equal(msg.hash);
-      done();
     });
 
     middleware._onUpdate(msg.hash);
@@ -40,7 +35,7 @@ describe('Middleware', function() {
   })
 
   describe('#_onServiceWorkerMessage', function() {
-    var event = {
+    var _event = {
       data: {
         type: 'update',
         hash: 'test'
@@ -50,14 +45,14 @@ describe('Middleware', function() {
       middleware._onUpdate = function (){
         done();
       }
-      middleware._onServiceWorkerMessage(event)
+      middleware._onServiceWorkerMessage(_event)
     })
     it('requests resource on request type', function(done) {
-      event.data.type = 'request';
+      _event.data.type = 'request';
       middleware._onRequest = function (){
         done();
       }
-      middleware._onServiceWorkerMessage(event)
+      middleware._onServiceWorkerMessage(_event)
     })
   })
   it('requests the cached resouces', function(done) {

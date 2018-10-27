@@ -10,7 +10,7 @@ module.exports = function(config) {
 
     // frameworks to use
     // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-    frameworks: ['mocha', 'chai'],
+    frameworks: ['mocha', 'chai', 'sinon-chai'],
 
 
     // list of files / patterns to load in the browser
@@ -20,12 +20,14 @@ module.exports = function(config) {
       'http://localhost:8080/socket.io/socket.io.js'
     ],
 
+
     crossOriginAttribute: false,
 
     client: {
       chai: {
         includeStack: true
       },
+      useIframe: true,
       mocha: {
         reporter: 'html',
         ui: 'bdd'

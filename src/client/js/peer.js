@@ -33,9 +33,15 @@ class Peer {
 
   _updateUI() {
     document.dispatchEvent(
-        new CustomEvent('ui:onUpdate', {detail: {
-          peerId: this.peerId, peers: this.peers}
-        })
+        new CustomEvent(
+          'ui:onUpdate',
+          {
+            detail:
+            {
+              peerId: this.peerId, peers: this.peers
+            }
+          }
+        )
     );
   }
 
@@ -45,39 +51,45 @@ class Peer {
     );
   }
 
+  _onReceiveId(event) {
+    this.peerId = event.detail;
+    this._updateUI();
+    this._updateSW();
+  }
+
+  _onUpdatePeers(event) {
+    this.updatePeers(event.detail);
+    this._updateUI();
+  }
+
+  _onNewConnection(event) {
+    this.connectTo(event.detail);
+    this._updateUI();
+  }
+
+  _onRequestResource(event) {
+    const msg = event.detail;
+    this.requestResourceFromPeers(msg.hash, msg.cb);
+  }
+
+  _onSignalingMessage(event) {
+    const msg = event.detail;
+    this.receiveSignalMessage(msg.peerId, msg.message)
+    this._updateUI();
+  }
+
+  _onClosed(event) {
+    this.removePeer(event.detail);
+    this._updateUI();
+  }
+
   _registerEvents() {
-    document.addEventListener('peer:onReceiveId', event => {
-      this.peerId = event.detail;
-      this._updateUI();
-      this._updateSW();
-    });
-
-    document.addEventListener('peer:onUpdatePeers', event => {
-      this.updatePeers(event.detail);
-      this._updateUI();
-    });
-
-    document.addEventListener('peer:onNewConnection', event => {
-      this.connectTo(event.detail);
-      this._updateUI();
-    });
-
-    document.addEventListener('peer:onRequestResource', event => {
-      const msg = event.detail;
-      this.requestResourceFromPeers(msg.hash, msg.cb);
-    });
-
-    document.addEventListener('peer:onSignalingMessage', event => {
-      const msg = event.detail;
-      this.receiveSignalMessage(msg.peerId, msg.message)
-      this._updateUI();
-    });
-
-    document.addEventListener('peer:onClose', event => {
-      this.removePeer(event.detail);
-      this._updateUI();
-    });
-
+    document.addEventListener('peer:onReceiveId', _onReceiveId.bind(this));
+    document.addEventListener('peer:onUpdatePeers', _onUpdatePeers.bind(this));
+    document.addEventListener('peer:onNewConnection', _onNewConnection.bind(this));
+    document.addEventListener('peer:onRequestResource', _onRequestResource.bind(this));
+    document.addEventListener('peer:onSignalingMessage', _onSignalingMessage.bind(this));
+    document.addEventListener('peer:onClose', _onClosed.bind(this));
   }
 
   _getPeerIdx(peerId) {
