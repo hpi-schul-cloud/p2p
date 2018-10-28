@@ -84,12 +84,12 @@ class Peer {
   }
 
   _registerEvents() {
-    document.addEventListener('peer:onReceiveId', _onReceiveId.bind(this));
-    document.addEventListener('peer:onUpdatePeers', _onUpdatePeers.bind(this));
-    document.addEventListener('peer:onNewConnection', _onNewConnection.bind(this));
-    document.addEventListener('peer:onRequestResource', _onRequestResource.bind(this));
-    document.addEventListener('peer:onSignalingMessage', _onSignalingMessage.bind(this));
-    document.addEventListener('peer:onClose', _onClosed.bind(this));
+    document.addEventListener('peer:onReceiveId', this._onReceiveId.bind(this));
+    document.addEventListener('peer:onUpdatePeers', this._onUpdatePeers.bind(this));
+    document.addEventListener('peer:onNewConnection', this._onNewConnection.bind(this));
+    document.addEventListener('peer:onRequestResource', this._onRequestResource.bind(this));
+    document.addEventListener('peer:onSignalingMessage', this._onSignalingMessage.bind(this));
+    document.addEventListener('peer:onClose', this._onClosed.bind(this));
   }
 
   _getPeerIdx(peerId) {
