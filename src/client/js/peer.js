@@ -208,6 +208,7 @@ class Peer {
   }
 
   _checkCache() {
+    // TODO: extract and write test
     const cb = cachedResources => {
       this.log('cached resources %o', cachedResources);
       if (cachedResources && cachedResources.length > 0) {
@@ -289,13 +290,14 @@ class Peer {
 
   _handleUpdate(message) {
     const peer = this._getPeer(message.from);
-
     if (!peer) {
       this.log('ERROR! Could not find peer!');
-    } else {
-      this.log('updated peer %s with resource %s', message.from, message.hash);
-      this._addResource(peer, message.hash)
+      return;
     }
+
+    this.log('updated peer %s with resource %s', message.from, message.hash);
+    this._addResource(peer, message.hash)
+
   }
 
   _handleRequest(message){
@@ -312,7 +314,6 @@ class Peer {
 
   _handleResponse(message, responseAb) {
     const peer = this._getPeer(message.from);
-
     if (responseAb.byteLength <= this.message.sizes.maxData) {
       this._sendToPeer(peer, this.message.types.response, message.hash, responseAb);
     } else {

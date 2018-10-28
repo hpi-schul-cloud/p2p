@@ -41,7 +41,6 @@ describe('Peer', function() {
   })
 
   describe('#_onReceiveId', function() {
-
     it('updates peerId', function(){
       peer._onReceiveId(_event);
       expect(peer.peerId).to.equal(_event.detail)
@@ -202,74 +201,146 @@ describe('Peer', function() {
   })
 
   describe('#_sendToPeer', function(){
-
+    it('calls _sendViaDataChannel', function() {
+      peer._sendViaDataChannel = sinon.spy();
+      peer.peerId = 4;
+      peer._sendToPeer(peer.peers[1], 'testi', 'testi');
+      expect(peer._sendViaDataChannel).to.be.calledOnce;
+    })
   })
 
   describe('#_requestPeer', function(){
-
+    let _peer;
+    let hash;
+    let cb;
+    beforeEach(function() {
+      _peer = peer.peers[1];
+      msgType = 'test';
+      hash = 'test hash';
+      cb = function() {};
+      peer.requests = [];
+      peer._sendToPeer = sinon.spy();
+    })
+    it('adds the request', function(){
+      peer._requestPeer(_peer, msgType, hash, cb);
+      expect(peer.requests.length).to.equal(1)
+    })
+    it('sends forwards the request the the peer', function() {
+      peer._requestPeer(_peer, msgType, hash, cb);
+      expect(peer._sendToPeer).to.be.calledOnce;
+    })
   })
 
   describe('#_addResource', function(){
-
+    let _peer;
+    beforeEach(function() {
+      _peer = peer.peers[2]
+      _peer.resources = [];
+    })
+    it('updates the UI', function(){
+      peer._updateUI = sinon.spy();
+      peer._addResource(_peer, {});
+      expect(peer._updateUI).to.be.calledOnce;
+    })
+    it('adds the resource', function() {
+      peer._addResource(_peer, { hash: 'testi' });
+      expect(_peer.resources.length).to.equal(1);
+    })
   })
 
   describe('#_checkCache', function(){
-
+    it('dispatchs sw:onRequestCache', function(done){
+      ensureEvent('sw:onRequestCache', done, peer, function(event, a){})
+      peer._checkCache();
+    })
   })
 
   describe('#_abToMessage', function(){
-
+    it('pending')
   })
 
   describe('#_handleUpdate', function(){
-
+    beforeEach(function() {
+      peer._getPeer = function(_) { return peer.peers[1] };
+      peer._addResource = sinon.spy();
+    })
+    it('adds the resource', function() {
+      peer._handleUpdate('testi')
+      expect(peer._addResource).to.be.calledOnce;
+    })
   })
 
   describe('#_handleRequest', function(){
+    const message = { hash: 'testi' }
 
+    it('dispatchs sw:onRequestResource', function(done){
+      ensureEvent('sw:onRequestResource', done, message, function(event, message){
+        expect(event.detail.hash).to.equal( message.hash )
+      })
+      peer._handleRequest(message);
+    })
   })
 
   describe('#_handleResponse', function(){
+    const respondsAb = {
+      byteLength: 20
+    }
+    const message = 'testi';
+    describe('when message must not be chunked', function() {
+      it('calls _sendToPeer', function() {
+        peer._sendToPeer = sinon.spy();
+        peer._handleResponse(message, respondsAb);
+        expect(peer._sendToPeer).to.be.calledOnce;
+      })
+    })
 
+    describe('when message must be chunked', function() {
+      it('calls _sendChunkedToPeer', function() {
+        peer.message.sizes.maxData = 1;
+        peer._sendChunkedToPeer = sinon.spy();
+        peer._handleResponse(message, respondsAb);
+        expect(peer._sendChunkedToPeer).to.be.calledOnce;
+      })
+    })
   })
 
   describe('#_handleChunk', function(){
-
+    it('pending');
   })
 
   describe('#_handleAnswer', function(){
-
+    it('pending');
   })
 
   describe('#_sendChunkedToPeer', function(){
-
+    it('pending');
   })
 
   describe('#_concatMessage', function(){
-
+    it('pending');
   })
 
   describe('#_onDataChannelCreated', function(){
-
+    it('pending');
   })
 
   describe('#connectTo', function(){
-
+    it('pending');
   })
 
   describe('#receiveSignalMessage', function(){
-
+    it('pending');
   })
 
   describe('#removePeer', function(){
-
+    it('pending');
   })
 
   describe('#updatePeers', function(){
-
+    it('pending');
   })
 
   describe('#requestResourceFromPeers', function(){
-
+    it('pending');
   })
 })
