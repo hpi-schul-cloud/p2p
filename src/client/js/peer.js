@@ -1,17 +1,19 @@
 class Peer {
 
-  constructor(channel, stunServer) {
+  constructor(config) {
+    this.config = config
     this.log = debug('openhpi:peer');
     this.log('setup');
 
     this.signaling = new Signaling();
-    this.serviceWorker = new ServiceWorkerMiddleware();
+    this.serviceWorker = new ServiceWorkerMiddleware(config);
 
-    this.stunServer = stunServer;
+    this.stunServer = config.stunServer;
     this.peerId = undefined;
     this.peers = [];
     this.requests = [];
     this.cacheNotification = [];
+    this.channel = config.channel;
 
     this.message = Object.freeze({
       types: {update: 1, request: 2, chunk: 3, response: 4},
@@ -28,7 +30,7 @@ class Peer {
     this._registerEvents();
 
     // Send handshake to server
-    this.signaling.hello(channel);
+    this.signaling.hello(this.channel);
   }
 
   _updateUI() {

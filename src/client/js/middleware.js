@@ -1,25 +1,27 @@
 class ServiceWorkerMiddleware {
 
-  constructor() {
+  constructor(config) {
     this.log = debug('openhpi:ServiceWorkerMiddleware');
     this.log('setup');
-    this._initServiceWorker();
+    this._initServiceWorker(config.serviceWorker);
   }
 
-  _initServiceWorker() {
+  _initServiceWorker(swConfig) {
     const sw = navigator.serviceWorker || {};
 
     if (sw) {
-      window.addEventListener('load', () => {
-        if (sw.controller) {
-          this.log('serviceWorker already registered');
-        } else {
-          sw.register('sw.js', {scope: '/'}).then(registration => {
-            this.log('registration successful, scope: %s', registration.scope);
-          }, err => {
-            this.log('registration failed: %s', err);
-          });
-        }
+      idbKeyval.set('swConfig', swConfig).then(() => {
+        window.addEventListener('load', () => {
+          if (sw.controller) {
+            this.log('serviceWorker already registered');
+          } else {
+            sw.register('sw.js', {scope: '/'}).then(registration => {
+              this.log('registration successful, scope: %s', registration.scope);
+            }, err => {
+              this.log('registration failed: %s', err);
+            });
+          }
+        });
       });
       this._initListeners();
     }

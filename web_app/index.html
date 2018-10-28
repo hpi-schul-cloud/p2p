@@ -22,6 +22,8 @@
     <link href="https://vjs.zencdn.net/7.0.5/video-js.css" rel="stylesheet">
 
     <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/idb-keyval@3/dist/idb-keyval-iife.min.js"></script>
+
     <script src="/socket.io/socket.io.js"></script>
 
     <script src="js/debug.js"></script>
@@ -31,15 +33,24 @@
 
     <script> // init
     localStorage.debug = '*,-socket.io*,-engine*';
-    var CHANNEL = 'FIXED_CLASS_1';
-    var STUN_SERVER = {
-      'iceServers': [
-        {
-          'urls': 'stun:stun.l.google.com:19302',
-        },
-      ],
-    };
-    var peer = new Peer(CHANNEL, STUN_SERVER);
+    var config = {
+      channel: 'FIXED_CLASS_1',
+      stunServer: {
+        'iceServers': [
+          {
+            'urls': 'stun:stun.l.google.com:19302',
+          },
+        ]
+      },
+      serviceWorker: {
+          urlsToShare:
+            [
+              '/img/',
+              '/video/'
+            ]
+        }
+      };
+    var peer = new Peer(config);
     </script>
 
     <script src="https://vjs.zencdn.net/7.0.5/video.js"></script>

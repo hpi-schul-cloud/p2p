@@ -1,12 +1,14 @@
 describe('Peer', function() {
-  const CHANNEL = 'FIXED_CLASS_1';
-  const STUN_SERVER = {
-    'iceServers': [
-      {
-        'urls': 'stun:stun.l.google.com:19302',
-      },
-    ],
-  };
+  const CONFIG = {
+    channel: 'FIXED_CLASS_1',
+    stunServer: {
+      'iceServers': [
+        {
+          'urls': 'stun:stun.l.google.com:19302',
+        },
+      ]
+    }
+  }
   var peer;
 
   var _event = {
@@ -18,7 +20,7 @@ describe('Peer', function() {
     ServiceWorkerMiddleware.prototype._initListeners = function() {}
     Signaling.prototype._dispatcher = function() {};
 
-    peer = new Peer(CHANNEL, STUN_SERVER);
+    peer = new Peer(CONFIG);
     peer.peers = [ {id: 24}, {id: 5}, {id: 14}];
     peer.requests = [
       { from: 5, hash: 'test1' },

@@ -1,15 +1,20 @@
 const CACHE_NAME = 'my-site-cache-v1';
 const version = '1.2.3';
+// import idbKeyval from 'idb-keyval';
 const cachingEnabled = false;
-const urlsToCache = [
-  '/img/',
-  '/video/',
-].join('|');
-
+var config = {}
+var urlsToShare = "";
 self.importScripts('/js/utils.js');
+self.importScripts('https://cdn.jsdelivr.net/npm/idb-keyval@3/dist/idb-keyval-iife.min.js');
 
 self.addEventListener('install', function(event) {
-  event.waitUntil(self.skipWaiting()); // Activate worker immediately
+  event.waitUntil(async function() {
+    var config = await idbKeyval.get('swConfig');
+    this.config = config;
+    if(typeof(config) !== 'undefined' && typeof(config.urlsToShare) !== 'undefined'){
+      urlsToShare = config.urlsToShare.join('|');
+    }
+  }());
 });
 
 self.addEventListener('activate', function(event) {
@@ -142,7 +147,7 @@ self.addEventListener('fetch', function(event) {
 
   console.log('received request: ' + url);
 
-  if (!new RegExp(urlsToCache, 'gi').test(url.pathname)) return;
+  if (!new RegExp(urlsToShare, 'gi').test(url.pathname)) return;
 
   console.log('sw handles request: ' + url);
 
