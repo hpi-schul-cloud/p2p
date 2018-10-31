@@ -4,13 +4,13 @@ const version = '1.2.3';
 const cachingEnabled = false;
 var config = {}
 var urlsToShare = "";
-self.importScripts('/js/utils.js');
 self.importScripts('https://cdn.jsdelivr.net/npm/idb-keyval@3/dist/idb-keyval-iife.min.js');
 
 self.addEventListener('install', function(event) {
   event.waitUntil(async function() {
     var config = await idbKeyval.get('swConfig');
     this.config = config;
+    self.importScripts(self.config.basePath + 'js/utils.js');
     if(typeof(config) !== 'undefined' && typeof(config.urlsToShare) !== 'undefined'){
       urlsToShare = config.urlsToShare.join('|');
     }

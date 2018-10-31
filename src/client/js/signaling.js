@@ -42,14 +42,14 @@ class Signaling {
     this.log('received message %o from %s', message, from);
     document.dispatchEvent(
         new CustomEvent('peer:onSignalingMessage',
-            {detail: {message: message, peerId: from}})
+            { detail: { message: message, peerId: from } })
     );
   }
 
   _onClosed(peerId) {
     this.log('peer %s closed connection', peerId);
     document.dispatchEvent(
-        new CustomEvent('peer:onClose', {detail: peerId})
+        new CustomEvent('peer:onClose', { detail: peerId })
     );
   }
 
