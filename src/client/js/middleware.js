@@ -15,7 +15,7 @@ class ServiceWorkerMiddleware {
           if (sw.controller) {
             this.log('serviceWorker already registered');
           } else {
-            sw.register('sw.js', {scope: '/'}).then(registration => {
+            sw.register(swConfig.path, {scope: swConfig.scope}).then(registration => {
               this.log('registration successful, scope: %s', registration.scope);
             }, err => {
               this.log('registration failed: %s', err);
