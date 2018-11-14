@@ -9,22 +9,24 @@ class ServiceWorkerMiddleware {
   _initServiceWorker(swConfig) {
     const sw = navigator.serviceWorker || {};
 
-    if (sw) {
-      idbKeyval.set('swConfig', swConfig).then(() => {
-        window.addEventListener('load', () => {
-          if (sw.controller) {
-            this.log('serviceWorker already registered');
-          } else {
-            sw.register(swConfig.path, {scope: swConfig.scope}).then(registration => {
-              this.log('registration successful, scope: %s', registration.scope);
-            }, err => {
-              this.log('registration failed: %s', err);
-            });
-          }
-        });
-      });
-      this._initListeners();
+    if(typeof(sw) === 'undefined' || typeof(idbKeyval) === 'undefined'){
+      return false;
     }
+
+    idbKeyval.set('swConfig', swConfig).then(() => {
+      window.addEventListener('load', () => {
+        if (sw.controller) {
+          this.log('serviceWorker already registered');
+        } else {
+          sw.register(swConfig.path, {scope: swConfig.scope}).then(registration => {
+            this.log('registration successful, scope: %s', registration.scope);
+          }, err => {
+            this.log('registration failed: %s', err);
+          });
+        }
+      });
+    });
+    this._initListeners();
   }
 
   _onRequest(hash, cb) {
