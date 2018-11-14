@@ -20,22 +20,24 @@ var ServiceWorkerMiddleware = function () {
 
       var sw = navigator.serviceWorker || {};
 
-      if (sw) {
-        idbKeyval.set('swConfig', swConfig).then(function () {
-          window.addEventListener('load', function () {
-            if (sw.controller) {
-              _this.log('serviceWorker already registered');
-            } else {
-              sw.register(swConfig.path, { scope: swConfig.scope }).then(function (registration) {
-                _this.log('registration successful, scope: %s', registration.scope);
-              }, function (err) {
-                _this.log('registration failed: %s', err);
-              });
-            }
-          });
-        });
-        this._initListeners();
+      if (typeof sw === 'undefined' || typeof idbKeyval === 'undefined') {
+        return false;
       }
+
+      idbKeyval.set('swConfig', swConfig).then(function () {
+        window.addEventListener('load', function () {
+          if (sw.controller) {
+            _this.log('serviceWorker already registered');
+          } else {
+            sw.register(swConfig.path, { scope: swConfig.scope }).then(function (registration) {
+              _this.log('registration successful, scope: %s', registration.scope);
+            }, function (err) {
+              _this.log('registration failed: %s', err);
+            });
+          }
+        });
+      });
+      this._initListeners();
     }
   }, {
     key: '_onRequest',

@@ -4,7 +4,7 @@ describe('Middleware', function() {
 
   beforeEach(function() {
     ServiceWorkerMiddleware.prototype._initListeners = function() {}
-    middleware = new ServiceWorkerMiddleware();
+    middleware = new ServiceWorkerMiddleware({ serviceWorker: {} });
   })
 
   it('dispatchs peer:onRequestResource', function(done){

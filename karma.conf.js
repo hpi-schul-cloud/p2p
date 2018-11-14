@@ -16,8 +16,9 @@ module.exports = function(config) {
     // list of files / patterns to load in the browser
     files: [
       'test/*.js',
-      'web_app/js/*.js',
-      'http://localhost:8080/socket.io/socket.io.js'
+      'build/src/*.js',
+      'http://localhost:8080/socket.io/socket.io.js',
+      'build/lib/*.js'
     ],
 
 
@@ -37,7 +38,7 @@ module.exports = function(config) {
 
     // list of files / patterns to exclude
     exclude: [
-      'web_app/js/videojs-hlsjs.js'
+      'build/src/sw.js'
     ],
 
 
