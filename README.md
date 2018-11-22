@@ -1,4 +1,7 @@
 # PeerToPeer CDN
+
+[![Greenkeeper badge](https://badges.greenkeeper.io/schul-cloud/p2p.svg)](https://greenkeeper.io/)
+
 This project provides a peer to peer CDN to deliver content directly between browsers in a collaborative manner. It uses WebRTC for the content delivery and service worker to intercept requests. This project aims to be a plugin solution. So the changes required to add the peer to peer CDN should kept as small as possible. Currently only the whitelist of shareable resources needs to be changed to adapt the CDN to a new project.
 
 ## Browser Support
