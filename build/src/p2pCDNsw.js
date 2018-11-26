@@ -6,6 +6,7 @@ var config = {}
 var urlsToShare = "";
 self.importScripts('https://cdn.jsdelivr.net/npm/idb-keyval@3/dist/idb-keyval-iife.min.js');
 self.importScripts('utils.js');
+self.importScripts('swPeerNotifications.js');
 
 self.addEventListener('install', function(event) {
   event.waitUntil(self.skipWaiting());
@@ -172,21 +173,6 @@ async function putIntoCache(key, response, clientId, iteration) {
       putIntoCache(key, obj, clientId, iteration+1);
     }
   }
-}
-
-async function notifyPeersAboutAdd(hash, clientID) {
-  notifyPeers(hash, clientID, 'addedResource')
-}
-
-async function notifyPeersAboutRemove(hash, clientID) {
-  notifyPeers(hash, clientID, 'removedResource')
-}
-
-async function notifyPeers(hash, clientID, type) {
-  const msg = {type: type, hash};
-  const client = await clients.get(clientID);
-
-  client.postMessage(msg);
 }
 
 function handleRequest(url, clientId) {
