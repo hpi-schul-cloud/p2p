@@ -1,7 +1,7 @@
 {
-  "name": "OpenHPI-P2P_CDN",
+  "name": "webrtc-p2p-cdn",
   "version": "1.0.0",
-  "description": "Test for signaling, webrtc etc",
+  "description": "A javascript and nodejs module to enable a webrtc based peer to peer CDN.",
   "main": "index.js",
   "scripts": {
     "babel": "build/babel.sh",
