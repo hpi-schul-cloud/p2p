@@ -42,12 +42,24 @@ class ServiceWorkerMiddleware {
         new CustomEvent('peer:onUpdatePeers', {detail: hash})
     );
   }
+  _onAddedResource(hash) {
+    document.dispatchEvent(
+        new CustomEvent('peer:onAddedResource', {detail: hash})
+    );
+  }
+  _onRemovedResource(hash) {
+    document.dispatchEvent(
+        new CustomEvent('peer:onRemovedResource', {detail: hash})
+    );
+  }
 
   _onServiceWorkerMessage(event) {
     this.log('received request for: %o', event.data);
 
-    if (event.data.type === 'update') {
-      this._onUpdate(event.data.hash);
+    if (event.data.type === 'addedResource') {
+      this._onAddedResource(event.data.hash);
+    } else if(event.data.type === 'removedResource') {
+      this._onRemovedResource(event.data.hash);
     } else if (event.data.type === 'request') {
       const reply = response => {
         this.log('have received something: %s', response);

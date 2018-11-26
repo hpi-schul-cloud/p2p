@@ -59,16 +59,29 @@ describe('Peer', function() {
     })
   })
 
-  describe('#_onUpdatePeers', function(){
+  describe('#_onAddedResource', function(){
     it('updates the Peers', function(){
       peer.updatePeers = sinon.spy();
-      peer._onUpdatePeers(_event);
+      peer._onAddedResource(_event);
       expect(peer.updatePeers).to.be.calledOnce;
     })
     it('updates the UI', function(){
       peer.peers = [];
       peer._updateUI = sinon.spy();
-      peer._onUpdatePeers(_event);
+      peer._onAddedResource(_event);
+      expect(peer._updateUI).to.be.calledOnce;
+    })
+  })
+  describe('#_onRemovedResource', function(){
+    it('updates the Peers', function(){
+      peer.updatePeers = sinon.spy();
+      peer._onRemovedResource(_event);
+      expect(peer.updatePeers).to.be.calledOnce;
+    })
+    it('updates the UI', function(){
+      peer.peers = [];
+      peer._updateUI = sinon.spy();
+      peer._onRemovedResource(_event);
       expect(peer._updateUI).to.be.calledOnce;
     })
   })
@@ -267,7 +280,7 @@ describe('Peer', function() {
       peer._addResource = sinon.spy();
     })
     it('adds the resource', function() {
-      peer._handleUpdate('testi')
+      peer._handleUpdate('testi', 1)
       expect(peer._addResource).to.be.calledOnce;
     })
   })

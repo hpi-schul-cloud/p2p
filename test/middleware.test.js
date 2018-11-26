@@ -37,12 +37,12 @@ describe('Middleware', function() {
   describe('#_onServiceWorkerMessage', function() {
     var _event = {
       data: {
-        type: 'update',
+        type: 'addedResource',
         hash: 'test'
       }
     }
     it('notifies the peers on update', function(done) {
-      middleware._onUpdate = function (){
+      middleware._onAddedResource = function (){
         done();
       }
       middleware._onServiceWorkerMessage(_event)

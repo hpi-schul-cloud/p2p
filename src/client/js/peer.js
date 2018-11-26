@@ -16,7 +16,7 @@ class Peer {
     this.channel = config.channel;
 
     this.message = Object.freeze({
-      types: {update: 1, request: 2, chunk: 3, response: 4},
+      types: {addedResource: 1, removedResource: 2, request: 3, chunk: 4, response: 5},
       sizes: { // in byte
         type: 1,
         peerId: 24,
@@ -59,8 +59,13 @@ class Peer {
     this._updateSW();
   }
 
-  _onUpdatePeers(event) {
-    this.updatePeers(event.detail);
+  _onAddedResource(event) {
+    this.updatePeers(event.detail, this.message.types.addedResource);
+    this._updateUI();
+  }
+
+  _onRemovedResource(event) {
+    this.updatePeers(event.detail, this.message.types.removedResource);
     this._updateUI();
   }
 
@@ -87,7 +92,8 @@ class Peer {
 
   _registerEvents() {
     document.addEventListener('peer:onReceiveId', this._onReceiveId.bind(this));
-    document.addEventListener('peer:onUpdatePeers', this._onUpdatePeers.bind(this));
+    document.addEventListener('peer:onAddedResource', this._onAddedResource.bind(this));
+    document.addEventListener('peer:onRemovedResource', this._onRemovedResource.bind(this));
     document.addEventListener('peer:onNewConnection', this._onNewConnection.bind(this));
     document.addEventListener('peer:onRequestResource', this._onRequestResource.bind(this));
     document.addEventListener('peer:onSignalingMessage', this._onSignalingMessage.bind(this));
@@ -209,6 +215,14 @@ class Peer {
     }
   }
 
+  _removeResource(peer, resource) {
+    const index = peer.resources.indexOf(resource)
+    if (index !== -1) {
+      peer.resources.splice(index,1)
+      this._updateUI();
+    }
+  }
+
   _checkCache() {
     // TODO: extract and write test
     const cb = cachedResources => {
@@ -222,7 +236,7 @@ class Peer {
               if (peer.dataChannel) {
                 this.log('update %s about cached resource %s', peer.id, hash);
                 this.cacheNotification.push(peer.id);
-                this._sendToPeer(peer, this.message.types.update, hash);
+                this._sendToPeer(peer, this.message.types.addedResource, hash);
               }
             });
           }
@@ -290,7 +304,8 @@ class Peer {
     return message;
   }
 
-  _handleUpdate(message) {
+// TODO Adapt for delete
+  _handleUpdate(message, type) {
     const peer = this._getPeer(message.from);
     if (!peer) {
       this.log('ERROR! Could not find peer!');
@@ -298,7 +313,11 @@ class Peer {
     }
 
     this.log('updated peer %s with resource %s', message.from, message.hash);
-    this._addResource(peer, message.hash)
+    if(type == this.message.types.addedResource){
+      this._addResource(peer, message.hash);
+      return;
+    }
+    this._removeResource(peer, message.hash);
 
   }
 
@@ -427,10 +446,15 @@ class Peer {
 
       this.log('decoded message %o', message);
 
+      // adapt for deletes
       switch (message.type) {
         case types.update:
           this._handleUpdate(message);
           break;
+        case types.addedResource:
+        case types.removedResource:
+          this._handleUpdate(message, message.type);
+          break
         case types.request:
           this._handleRequest(message);
           break;
@@ -542,11 +566,12 @@ class Peer {
     }
   }
 
-  updatePeers(hash) {
+// TODO adapt for deletes
+  updatePeers(hash, msgType) {
     if(this.peers.length > 0) {
       this.log('broadcast peers for %s', hash);
       this.peers.forEach(peer => {
-        this._sendToPeer(peer, this.message.types.update, hash);
+        this._sendToPeer(peer, msgType, hash);
       });
     }
   }

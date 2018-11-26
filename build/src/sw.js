@@ -1,21 +1,24 @@
-const CACHE_NAME = 'my-site-cache-v1';
+const CACHE_NAME = 'P2P-CDN-v1';
 const version = '1.2.3';
 
 const cachingEnabled = false;
 var config = {}
 var urlsToShare = "";
 self.importScripts('https://cdn.jsdelivr.net/npm/idb-keyval@3/dist/idb-keyval-iife.min.js');
+self.importScripts('utils.js');
 
 self.addEventListener('install', function(event) {
-  event.waitUntil(async function() {
-    var config = await idbKeyval.get('swConfig');
-    this.config = config;
+  event.waitUntil(self.skipWaiting());
+
+  idbKeyval.get('swConfig').then(function(wsConfig){
+    config = wsConfig;
     self.importScripts(self.config.basePath + 'utils.js');
 
     if(typeof(config) !== 'undefined' && typeof(config.urlsToShare) !== 'undefined'){
       urlsToShare = config.urlsToShare.join('|');
     }
-  }());
+  });
+
 });
 
 self.addEventListener('activate', function(event) {
@@ -94,16 +97,93 @@ function getFromInternet(url) {
   });
 }
 
-async function putIntoCache(key, response) {
-  const obj = response.clone();
+// the request size is currently just an estimate for the needed size in the cache
+async function getRequestSize(request){
+  const obj = request.clone();
+  const buffer = await obj.arrayBuffer()
+  var view = new DataView(buffer);
+  const offset = 3000;
+  var requestSize = view.byteLength;
+  var it = request.headers.entries();
+  var header = it.next();
+  var size = 0;
+  while(!header.done){
+    size += header.value[0].length;
+    size += header.value[1].length;
 
-  await caches.open(version).then(cache => {
-    return cache.put(key, obj);
-  });
+    header = it.next();
+  }
+  requestSize += size
+  requestSize += offset;
+
+  // In case something goes wrong it is better to estimate the size with 0 than NaN,
+  // to prevent the cache to be completely emptied
+  if(isNaN(requestSize)){
+    requestSize = 0;
+  }
+
+  return requestSize;
 }
 
-async function notifyPeers(hash, clientID) {
-  const msg = {type: 'update', hash};
+// removes the oldest request from the cache
+// TODO: evtl so ändern das speicher bis zu einem bestimmten wert geschaffen wird --> performance
+async function freeStorage(clientId){
+  return new Promise(resolve =>{
+
+    console.log("starting to free storage");
+    caches.open(version).then(cache => {
+      cache.keys().then(keys => {
+        if(keys[0]){
+          cache.delete(keys[0]).then( function() {
+            resolve();
+          });
+
+          const urlArray = keys[0].url.split("/");
+          const hash = urlArray[urlArray.length-1];
+          notifyPeersAboutRemove(hash, clientId)
+          console.log("Removed " + keys[0] + "from the cache")
+        } else{
+          resolve();
+        }
+      });
+    });
+  })
+}
+
+async function putIntoCache(key, response, clientId, iteration) {
+  iteration = iteration || 0;
+  const maxIteration = 100;
+  const obj = response.clone();
+  var storage = await navigator.storage.estimate();
+  const usedStorage = storage.usage;
+  var futureUsage = await getRequestSize(obj);
+  futureUsage += usedStorage;
+
+  if(!config.storageQuota ||
+    (parseInt(config.storageQuota)*1000000 >= futureUsage &&
+    storage.quota >= futureUsage)) {
+
+    await caches.open(version).then(cache => {
+      return cache.put(key, obj);
+    });
+  } else {
+    if(iteration <= maxIteration){
+      await freeStorage(clientId);
+      putIntoCache(key, obj, clientId, iteration+1);
+    }
+  }
+}
+
+async function notifyPeersAboutAdd(hash, clientID) {
+  notifyPeers(hash, clientID, 'addedResource')
+}
+
+async function notifyPeersAboutRemove(hash, clientID) {
+  notifyPeers(hash, clientID, 'removedResource')
+}
+
+async function notifyPeers(hash, clientID, type) {
+  const msg = {type: type, hash};
   const client = await clients.get(clientID);
 
   client.postMessage(msg);
@@ -116,7 +196,8 @@ function handleRequest(url, clientId) {
       getFromCache(hash).then(cacheResponse => {
         console.log('cacheResponse ', cacheResponse);
         if (cacheResponse && cachingEnabled) {
-          notifyPeers(hash, clientId);
+          // This notify should not be needed
+          notifyPeersAboutAdd(hash, clientId);
           resolve(cacheResponse);
           return;
         }
@@ -124,16 +205,16 @@ function handleRequest(url, clientId) {
         getFromClient(clientId, hash).then(peerResponse => {
           console.log('peerResponse ', peerResponse);
           if (peerResponse) {
-            putIntoCache(hash, peerResponse);
-            notifyPeers(hash, clientId);
+            putIntoCache(hash, peerResponse, clientId);
+            notifyPeersAboutAdd(hash, clientId);
             resolve(peerResponse);
             return;
           }
           // get from the internet
           getFromInternet(url).then(response => {
             console.log('internet response ', response);
-            putIntoCache(hash, response);
-            notifyPeers(hash, clientId);
+            putIntoCache(hash, response, clientId);
+            notifyPeersAboutAdd(hash, clientId);
             resolve(response);
           });
         });

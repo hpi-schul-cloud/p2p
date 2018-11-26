@@ -52,14 +52,26 @@ var ServiceWorkerMiddleware = function () {
       document.dispatchEvent(new CustomEvent('peer:onUpdatePeers', { detail: hash }));
     }
   }, {
+    key: '_onAddedResource',
+    value: function _onAddedResource(hash) {
+      document.dispatchEvent(new CustomEvent('peer:onAddedResource', { detail: hash }));
+    }
+  }, {
+    key: '_onRemovedResource',
+    value: function _onRemovedResource(hash) {
+      document.dispatchEvent(new CustomEvent('peer:onRemovedResource', { detail: hash }));
+    }
+  }, {
     key: '_onServiceWorkerMessage',
     value: function _onServiceWorkerMessage(event) {
       var _this2 = this;
 
       this.log('received request for: %o', event.data);
 
-      if (event.data.type === 'update') {
-        this._onUpdate(event.data.hash);
+      if (event.data.type === 'addedResource') {
+        this._onAddedResource(event.data.hash);
+      } else if (event.data.type === 'removedResource') {
+        this._onRemovedResource(event.data.hash);
       } else if (event.data.type === 'request') {
         var reply = function reply(response) {
           _this2.log('have received something: %s', response);
@@ -231,7 +243,7 @@ var Peer = function () {
     this.channel = config.channel;
 
     this.message = Object.freeze({
-      types: { update: 1, request: 2, chunk: 3, response: 4 },
+      types: { addedResource: 1, removedResource: 2, request: 3, chunk: 4, response: 5 },
       sizes: { // in byte
         type: 1,
         peerId: 24,
@@ -270,9 +282,15 @@ var Peer = function () {
       this._updateSW();
     }
   }, {
-    key: '_onUpdatePeers',
-    value: function _onUpdatePeers(event) {
-      this.updatePeers(event.detail);
+    key: '_onAddedResource',
+    value: function _onAddedResource(event) {
+      this.updatePeers(event.detail, this.message.types.addedResource);
+      this._updateUI();
+    }
+  }, {
+    key: '_onRemovedResource',
+    value: function _onRemovedResource(event) {
+      this.updatePeers(event.detail, this.message.types.removedResource);
       this._updateUI();
     }
   }, {
@@ -304,7 +322,8 @@ var Peer = function () {
     key: '_registerEvents',
     value: function _registerEvents() {
       document.addEventListener('peer:onReceiveId', this._onReceiveId.bind(this));
-      document.addEventListener('peer:onUpdatePeers', this._onUpdatePeers.bind(this));
+      document.addEventListener('peer:onAddedResource', this._onAddedResource.bind(this));
+      document.addEventListener('peer:onRemovedResource', this._onRemovedResource.bind(this));
       document.addEventListener('peer:onNewConnection', this._onNewConnection.bind(this));
       document.addEventListener('peer:onRequestResource', this._onRequestResource.bind(this));
       document.addEventListener('peer:onSignalingMessage', this._onSignalingMessage.bind(this));
@@ -443,6 +462,15 @@ var Peer = function () {
       }
     }
   }, {
+    key: '_removeResource',
+    value: function _removeResource(peer, resource) {
+      var index = peer.resources.indexOf(resource);
+      if (index !== -1) {
+        peer.resources.splice(index, 1);
+        this._updateUI();
+      }
+    }
+  }, {
     key: '_checkCache',
     value: function _checkCache() {
       var _this2 = this;
@@ -459,7 +487,7 @@ var Peer = function () {
                 if (peer.dataChannel) {
                   _this2.log('update %s about cached resource %s', peer.id, hash);
                   _this2.cacheNotification.push(peer.id);
-                  _this2._sendToPeer(peer, _this2.message.types.update, hash);
+                  _this2._sendToPeer(peer, _this2.message.types.addedResource, hash);
                 }
               });
             }
@@ -525,9 +553,12 @@ var Peer = function () {
 
       return message;
     }
+
+    // TODO Adapt for delete
+
   }, {
     key: '_handleUpdate',
-    value: function _handleUpdate(message) {
+    value: function _handleUpdate(message, type) {
       var peer = this._getPeer(message.from);
       if (!peer) {
         this.log('ERROR! Could not find peer!');
@@ -535,7 +566,11 @@ var Peer = function () {
       }
 
       this.log('updated peer %s with resource %s', message.from, message.hash);
-      this._addResource(peer, message.hash);
+      if (type == this.message.types.addedResource) {
+        this._addResource(peer, message.hash);
+        return;
+      }
+      this._removeResource(peer, message.hash);
     }
   }, {
     key: '_handleRequest',
@@ -674,9 +709,14 @@ var Peer = function () {
 
         _this4.log('decoded message %o', message);
 
+        // adapt for deletes
         switch (message.type) {
           case types.update:
             _this4._handleUpdate(message);
+            break;
+          case types.addedResource:
+          case types.removedResource:
+            _this4._handleUpdate(message, message.type);
             break;
           case types.request:
             _this4._handleRequest(message);
@@ -795,15 +835,18 @@ var Peer = function () {
         }
       }
     }
+
+    // TODO adapt for deletes
+
   }, {
     key: 'updatePeers',
-    value: function updatePeers(hash) {
+    value: function updatePeers(hash, msgType) {
       var _this7 = this;
 
       if (this.peers.length > 0) {
         this.log('broadcast peers for %s', hash);
         this.peers.forEach(function (peer) {
-          _this7._sendToPeer(peer, _this7.message.types.update, hash);
+          _this7._sendToPeer(peer, msgType, hash);
         });
       }
     }
