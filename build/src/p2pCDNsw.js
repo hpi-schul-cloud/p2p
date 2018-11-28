@@ -4,6 +4,8 @@ const version = '1.2.3';
 const cachingEnabled = false;
 var config = {}
 var urlsToShare = "";
+let hasClientConnection = false;
+
 self.importScripts('https://cdn.jsdelivr.net/npm/idb-keyval@3/dist/idb-keyval-iife.min.js');
 self.importScripts('utils.js');
 self.importScripts('swPeerNotifications.js');
@@ -23,6 +25,7 @@ self.addEventListener('install', function(event) {
 });
 
 self.addEventListener('activate', function(event) {
+  hasClientConnection = false;
   self.clients.claim(); // Become available to all pages
   event.waitUntil(self.skipWaiting());
 });
@@ -83,6 +86,10 @@ function getFromCache(key) {
 
 async function getFromClient(clientId, hash) {
   console.log('ask client to get: ', hash);
+  if(!hasClientConnection){
+    console.log("client is not ready");
+    return undefined;
+  }
   const msg = {type: 'request', hash};
   const message = await sendMessageToClient(msg, clientId);
 
@@ -242,5 +249,7 @@ self.addEventListener('message', function(event) {
         event.ports[0].postMessage(buffer, [buffer]);
       });
     });
+  } else if (msg.type === 'status' && msg.msg === 'ready') {
+    hasClientConnection = true;
   }
 });
