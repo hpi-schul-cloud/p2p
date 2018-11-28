@@ -1,6 +1,6 @@
 {
   "name": "webrtc-p2p-cdn",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A javascript and nodejs module to enable a webrtc based peer to peer CDN.",
   "main": "index.js",
   "scripts": {
