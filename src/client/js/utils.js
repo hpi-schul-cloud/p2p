@@ -1,3 +1,10 @@
+function getLogger(scope){
+  if(typeof (debug) !== 'undefined'){
+    return debug(scope);
+  }
+  return function () { };
+}
+
 function toHex(buffer) {
   const hexCodes = [];
   const view = new DataView(buffer);

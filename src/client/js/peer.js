@@ -2,7 +2,7 @@ class Peer {
 
   constructor(config) {
     this.config = config
-    this.log = debug('openhpi:peer');
+    this.log = getLogger('openhpi:peer');
     this.log('setup');
 
     this.signaling = new Signaling();

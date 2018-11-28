@@ -1,5 +1,12 @@
 'use strict';
 
+function getLogger(scope) {
+  if (typeof debug !== 'undefined') {
+    return debug(scope);
+  }
+  return function () {};
+}
+
 function toHex(buffer) {
   var hexCodes = [];
   var view = new DataView(buffer);

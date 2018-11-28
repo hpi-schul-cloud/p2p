@@ -8,7 +8,7 @@ var ServiceWorkerMiddleware = function () {
   function ServiceWorkerMiddleware(config) {
     _classCallCheck(this, ServiceWorkerMiddleware);
 
-    this.log = debug('openhpi:ServiceWorkerMiddleware');
+    this.log = getLogger('openhpi:ServiceWorkerMiddleware');
     this.log('setup');
     this._initServiceWorker(config.serviceWorker);
   }
@@ -155,7 +155,7 @@ var Signaling = function () {
   function Signaling() {
     _classCallCheck(this, Signaling);
 
-    this.log = debug('openhpi:client-signaling');
+    this.log = getLogger('openhpi:client-signaling');
     this.log('setup');
     this.socket = io.connect(window.location.href, { forceNew: true });
     this._dispatcher();
@@ -229,7 +229,7 @@ var Peer = function () {
     _classCallCheck(this, Peer);
 
     this.config = config;
-    this.log = debug('openhpi:peer');
+    this.log = getLogger('openhpi:peer');
     this.log('setup');
 
     this.signaling = new Signaling();
