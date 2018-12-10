@@ -58,7 +58,7 @@ class ServiceWorkerMiddleware {
 
     if (event.data.type === 'addedResource') {
       this._onAddedResource(event.data.hash);
-    } else if(event.data.type === 'removedResource') {
+    } else if (event.data.type === 'removedResource') {
       this._onRemovedResource(event.data.hash);
     } else if (event.data.type === 'request') {
       const reply = response => {
@@ -66,6 +66,8 @@ class ServiceWorkerMiddleware {
         event.ports[0].postMessage(response);
       };
       this._onRequest(event.data.hash, reply);
+    } else if (event.data.type === 'heartbeat') {
+      this._sendHeartbeat(event);
     } else {
       this.log('cant match request!');
     }
@@ -74,6 +76,11 @@ class ServiceWorkerMiddleware {
   _onClientReady() {
     const msg = { type: 'status', msg: 'ready' };
     this.messageToServiceWorker(msg);
+  }
+
+  _sendHeartbeat(event) {
+    const msg = { type: 'heartbeat' }
+    event.ports[0].postMessage(msg);
   }
 
   _onRequestCache(event) {

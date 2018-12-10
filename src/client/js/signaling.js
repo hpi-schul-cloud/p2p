@@ -3,7 +3,7 @@ class Signaling {
   constructor() {
     this.log = getLogger('openhpi:client-signaling');
     this.log('setup');
-    this.socket = io.connect(window.location.href, {forceNew: true});
+    this.socket = io.connect(window.location.origin, {forceNew: true});
     this._dispatcher();
   }
 

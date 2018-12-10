@@ -78,6 +78,8 @@ var ServiceWorkerMiddleware = function () {
           event.ports[0].postMessage(response);
         };
         this._onRequest(event.data.hash, reply);
+      } else if (event.data.type === 'heartbeat') {
+        this._sendHeartbeat(event);
       } else {
         this.log('cant match request!');
       }
@@ -87,6 +89,12 @@ var ServiceWorkerMiddleware = function () {
     value: function _onClientReady() {
       var msg = { type: 'status', msg: 'ready' };
       this.messageToServiceWorker(msg);
+    }
+  }, {
+    key: '_sendHeartbeat',
+    value: function _sendHeartbeat(event) {
+      var msg = { type: 'heartbeat' };
+      event.ports[0].postMessage(msg);
     }
   }, {
     key: '_onRequestCache',
@@ -157,7 +165,7 @@ var Signaling = function () {
 
     this.log = getLogger('openhpi:client-signaling');
     this.log('setup');
-    this.socket = io.connect(window.location.href, { forceNew: true });
+    this.socket = io.connect(window.location.origin, { forceNew: true });
     this._dispatcher();
   }
 

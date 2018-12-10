@@ -25,15 +25,46 @@ self.addEventListener('install', function(event) {
 });
 
 self.addEventListener('activate', function(event) {
-  hasClientConnection = false;
-  self.clients.claim(); // Become available to all pages
+  // hasClientConnection = false;
   event.waitUntil(self.skipWaiting());
+  self.clients.claim(); // Become available to all pages
 });
+
+function isClientReady(client){
+  return new Promise(async function(resolve, reject) {
+    const msg_chan = new MessageChannel();
+    const timeout = 200;
+    const msg = { type: 'heartbeat' }
+    let receivedResponse = false;
+
+    msg_chan.port1.onmessage = function(event) {
+      receivedResponse = true;
+      resolve(true);
+    };
+
+    // Send message to service worker along with port for reply
+    setTimeout(function() {
+      if (!receivedResponse) {
+        msg_chan.port1.close();
+        msg_chan.port2.close();
+        console.log("client not ready")
+        resolve(false)
+      }
+    }, timeout);
+
+    client.postMessage(msg, [msg_chan.port2]);
+  })
+}
 
 function sendMessageToClient(msg, clientID) {
   return new Promise(async function(resolve, reject) {
     const client = await clients.get(clientID);
-    // await waitForClient(client, 0);
+    const clientReady = await isClientReady(client);
+    if (typeof client === 'undefined' || !clientReady){
+      resolve(false);
+      return false;
+    }
+
     const msg_chan = new MessageChannel();
     const timeout = 20000;
     let receivedResponse = false;
@@ -46,18 +77,16 @@ function sendMessageToClient(msg, clientID) {
     };
 
     // Send message to service worker along with port for reply
-    if (typeof client !== 'undefined') {
-      setTimeout(function() {
-        if (!receivedResponse) {
-          msg_chan.port1.close();
-          msg_chan.port2.close();
-          console.log('close message channel');
-          reject('Timeout of ' + timeout);
-        }
-      }, timeout);
+    setTimeout(function() {
+      if (!receivedResponse) {
+        msg_chan.port1.close();
+        msg_chan.port2.close();
+        console.log('close message channel');
+        reject('Timeout of ' + timeout);
+      }
+    }, timeout);
 
-      client.postMessage(msg, [msg_chan.port2]);
-    }
+    client.postMessage(msg, [msg_chan.port2]);
   });
 }
 
@@ -86,10 +115,10 @@ function getFromCache(key) {
 
 async function getFromClient(clientId, hash) {
   console.log('ask client to get: ', hash);
-  if(!hasClientConnection){
-    console.log("client is not ready");
-    return undefined;
-  }
+  // if(!hasClientConnection){
+  //   console.log("client is not ready");
+  //   return undefined;
+  // }
   const msg = {type: 'request', hash};
   const message = await sendMessageToClient(msg, clientId);
 
@@ -227,7 +256,7 @@ self.addEventListener('fetch', function(event) {
   console.log('sw handles request: ' + url);
 
   if (!event.clientId) return;
-  if (url.origin !== location.origin) return;
+  // if (url.origin !== location.origin) return;
 
   console.log('fetch --> ', event.request.url);
 
