@@ -765,6 +765,8 @@ var Peer = function () {
             type: 'candidate',
             label: event.candidate.sdpMLineIndex,
             id: event.candidate.sdpMid,
+            sdpMid: event.candidate.sdpMid,
+            sdpMLineIndex: event.candidate.sdpMLineIndex,
             candidate: event.candidate.candidate
           });
         }

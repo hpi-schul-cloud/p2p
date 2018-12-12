@@ -66,7 +66,7 @@ function sendMessageToClient(msg, clientID) {
     }
 
     const msg_chan = new MessageChannel();
-    const timeout = 20000;
+    const timeout = 2000;
     let receivedResponse = false;
 
     // Handler for receiving message reply from service worker
@@ -82,7 +82,7 @@ function sendMessageToClient(msg, clientID) {
         msg_chan.port1.close();
         msg_chan.port2.close();
         console.log('close message channel');
-        reject('Timeout of ' + timeout);
+        resolve(false);
       }
     }, timeout);
 
