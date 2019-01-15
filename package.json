@@ -8,7 +8,8 @@
     "minify": "build/minify.sh",
     "clean": "rm -rf ./build/tmp",
     "test": "karma start karma.conf.js",
-    "build": "build/babel.sh && build/minify.sh"
+    "build": "build/babel.sh && build/minify.sh",
+    "build-modernizr": "build/build-modernizr.sh"
   },
   "author": "",
   "license": "ISC",

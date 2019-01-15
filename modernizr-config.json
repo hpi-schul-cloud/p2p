@@ -1,0 +1,20 @@
+{
+  "minify": true,
+  "options": [
+  ],
+  "feature-detects": [
+    "test/applicationcache",
+    "test/cookies",
+    "test/customevent",
+    "test/dataview-api",
+    "test/indexeddb",
+    "test/messagechannel",
+    "test/postmessage",
+    "test/quota-management-api",
+    "test/serviceworker",
+    "test/websockets",
+    "test/webrtc/datachannel",
+    "test/webrtc/getusermedia",
+    "test/webrtc/peerconnection"
+  ]
+}
