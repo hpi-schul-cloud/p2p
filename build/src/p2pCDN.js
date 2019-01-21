@@ -884,7 +884,7 @@ var Peer = function () {
 
   return Peer;
 }();
-"use strict";
+'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
@@ -893,10 +893,17 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 var SystemTest = function () {
   function SystemTest(config) {
     _classCallCheck(this, SystemTest);
+
+    this.tests = {
+      'clientConnection': false,
+      'connectionBandwidth': false
+    };
+    this.maxWaitTime = 3000;
+    this._initListeners();
   }
 
   _createClass(SystemTest, [{
-    key: "testBrowser",
+    key: 'testBrowser',
     value: function testBrowser() {
       for (var feature in Modernizr) {
         if (Modernizr.hasOwnProperty(feature)) {
@@ -907,9 +914,59 @@ var SystemTest = function () {
       }
       return true;
     }
+  }, {
+    key: 'clientConnection',
+    value: function clientConnection() {
+      return new Promise(function (resolve, reject) {
+        if (this.tests.clientConnection) {
+          return resolve(true);;
+        }
+        console.log("asdasdasd");
+        setTimeout(function () {
+          resolve(this.tests.clientConnection);
+        }.bind(this), this.maxWaitTime);
+      }.bind(this));
+    }
+  }, {
+    key: 'connectionBandwidth',
+    value: function connectionBandwidth() {}
+  }, {
+    key: '_initListeners',
+    value: function _initListeners() {
+      document.addEventListener('sw:clientReady', function (event) {
+        this.tests.clientConnection = true;
+      }.bind(this));
+    }
   }]);
 
   return SystemTest;
+}();
+"use strict";
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var p2pCDN = function () {
+  function p2pCDN(config) {
+    _classCallCheck(this, p2pCDN);
+
+    this.systemTest = new SystemTest();
+    this.systemTest.clientConnection().then(function (a) {
+      console.log(a);
+    });
+
+    this.peer = new Peer(config);
+  }
+
+  _createClass(p2pCDN, [{
+    key: "systemTest",
+    value: function systemTest() {
+      return this.systemTest;
+    }
+  }]);
+
+  return p2pCDN;
 }();
 /*! modernizr 3.6.0 (Custom Build) | MIT *
  * https://modernizr.com/download/?-MessageChannel-applicationcache-cookies-customevent-datachannel-dataview-getusermedia-indexeddb-peerconnection-postmessage-quotamanagement-serviceworker-websockets !*/
