@@ -1,9 +1,9 @@
 class SystemTest {
 
-  constructor(config) {
+  constructor(p2pCDN) {
+    this.p2pCDN = p2pCDN;
     this.tests = {
-      'clientConnection': false,
-      'connectionBandwidth': false
+      'webrtcInitialized': false
     };
     this.maxWaitTime = 3000;
     this._initListeners();
@@ -11,33 +11,44 @@ class SystemTest {
 
   testBrowser() {
     for(let feature in Modernizr){
-      if(Modernizr.hasOwnProperty(feature)){
-        if(!feature){
-          return false;
-        }
+      if(Modernizr.hasOwnProperty(feature) && !feature){
+        return false;
       }
     }
     return true;
   }
 
-  clientConnection() {
-    return new Promise(function(resolve, reject) {
-      if(this.tests.clientConnection){
-        return resolve(true);;
-      }
-      setTimeout(function(){
-        resolve(this.tests.clientConnection);
-      }.bind(this), this.maxWaitTime);
+  webrtcInitialized() {
+    return this._executeWithRetry(function(){
+      return this.tests.webrtcInitialized;
     }.bind(this));
   }
 
-  connectionBandwidth() {
+  clientConnected() {
+    return this._executeWithRetry(function(){
+      if(this.p2pCDN.peer.peers.length === 0){
+        return false;
+      }
+      const peer = this.p2pCDN.peer.peers[0];
+      return (this.p2pCDN.peer._getStateFor(peer) === 'open');
+    }.bind(this));
+  }
 
+  _executeWithRetry(validator) {
+    return new Promise(function(resolve, reject) {
+      let result = validator();
+      if(validator()){
+        return resolve(true);
+      }
+      setTimeout(function(){
+        resolve(validator());
+      }, this.maxWaitTime);
+    }.bind(this));
   }
 
   _initListeners() {
     document.addEventListener('sw:clientReady', function (event) {
-      this.tests.clientConnection = true;
+      this.tests.webrtcInitialized = true;
     }.bind(this));
   }
 }

@@ -160,8 +160,12 @@ class Peer {
     });
   }
 
+  _getStateFor(peer) {
+    return peer.dataChannel ? peer.dataChannel.readyState : 'connecting';
+  }
+
   _sendViaDataChannel(peer, message) {
-    const state = peer.dataChannel ? peer.dataChannel.readyState : 'connecting';
+    const state = this._getStateFor(peer);
 
     switch (state) {
       case 'connecting':
