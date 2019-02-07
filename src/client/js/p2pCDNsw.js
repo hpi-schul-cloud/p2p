@@ -1,6 +1,5 @@
 const CACHE_NAME = 'P2P-CDN-v1';
 const version = '1.2.3';
-// GROßER TEST!!!
 const cachingEnabled = false;
 var config = {}
 var urlsToShare = "";
@@ -277,89 +276,3 @@ self.addEventListener('message', function(event) {
     hasClientConnection = true;
   }
 });
-
-'use strict';
-
-function getLogger(scope) {
-  if (typeof debug !== 'undefined') {
-    return debug(scope);
-  }
-  return function () {};
-}
-
-function toHex(buffer) {
-  var hexCodes = [];
-  var view = new DataView(buffer);
-
-  for (var i = 0; i < view.byteLength; i += 4) {
-    var value = view.getUint32(i);
-    var stringValue = value.toString(16);
-    var padding = '00000000';
-    var paddedValue = (padding + stringValue).slice(-padding.length);
-
-    hexCodes.push(paddedValue);
-  }
-  // Join all the hex strings into one
-  return hexCodes.join('');
-}
-
-function sha256(str) {
-  var buffer = new TextEncoder('utf-8').encode(str);
-
-  return crypto.subtle.digest('SHA-256', buffer).then(function (hash) {
-    return toHex(hash);
-  });
-}
-
-function abToStr(buf) {
-  return String.fromCharCode.apply(null, new Uint8Array(buf));
-}
-
-function strToAb(input) {
-  var str = input;
-  if (typeof input === 'number') str = input.toString();
-
-  var buf = new ArrayBuffer(str.length); // 1 bytes for each char
-  var bufView = new Uint8Array(buf);
-
-  for (var i = 0, strLen = str.length; i < strLen; i++) {
-    bufView[i] = str.charCodeAt(i);
-  }
-
-  return buf;
-}
-
-function concatAbs(abs) {
-  var byteLength = 0;
-  var length = 0;
-
-  abs.forEach(function (ab) {
-    byteLength += ab.byteLength;
-  });
-
-  var result = new Uint8Array(byteLength);
-
-  abs.forEach(function (ab) {
-    result.set(new Uint8Array(ab), length);
-    length += ab.byteLength;
-  });
-
-  return result;
-}
-
-async function notifyPeers(hash, clientID, type) {
-  const msg = {type: type, hash};
-  const client = await clients.get(clientID);
-
-  client.postMessage(msg);
-}
-
-async function notifyPeersAboutAdd(hash, clientID) {
-  notifyPeers(hash, clientID, 'addedResource');
-}
-
-async function notifyPeersAboutRemove(hash, clientID) {
-  notifyPeers(hash, clientID, 'removedResource');
-}
-
-var idbKeyval=function(e){"use strict";class t{constructor(e="keyval-store",t="keyval"){this.storeName=t,this._dbp=new Promise((r,n)=>{const o=indexedDB.open(e,1);o.onerror=(()=>n(o.error)),o.onsuccess=(()=>r(o.result)),o.onupgradeneeded=(()=>{o.result.createObjectStore(t)})})}_withIDBStore(e,t){return this._dbp.then(r=>new Promise((n,o)=>{const s=r.transaction(this.storeName,e);s.oncomplete=(()=>n()),s.onabort=s.onerror=(()=>o(s.error)),t(s.objectStore(this.storeName))}))}}let r;function n(){return r||(r=new t),r}return e.Store=t,e.get=function(e,t=n()){let r;return t._withIDBStore("readonly",t=>{r=t.get(e)}).then(()=>r.result)},e.set=function(e,t,r=n()){return r._withIDBStore("readwrite",r=>{r.put(t,e)})},e.del=function(e,t=n()){return t._withIDBStore("readwrite",t=>{t.delete(e)})},e.clear=function(e=n()){return e._withIDBStore("readwrite",e=>{e.clear()})},e.keys=function(e=n()){const t=[];return e._withIDBStore("readonly",e=>{(e.openKeyCursor||e.openCursor).call(e).onsuccess=function(){this.result&&(t.push(this.result.key),this.result.continue())}}).then(()=>t)},e}({});
