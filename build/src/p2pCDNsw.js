@@ -1,6 +1,5 @@
 const CACHE_NAME = 'P2P-CDN-v1';
 const version = '1.2.3';
-// GROßER TEST!!!
 const cachingEnabled = false;
 var config = {}
 var urlsToShare = "";

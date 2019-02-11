@@ -967,22 +967,22 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var p2pCDN = function () {
-  function p2pCDN(config) {
-    _classCallCheck(this, p2pCDN);
+var P2pCDN = function () {
+  function P2pCDN(config) {
+    _classCallCheck(this, P2pCDN);
 
     this.systemTest = new SystemTest(this);
     this.peer = new Peer(config);
   }
 
-  _createClass(p2pCDN, [{
+  _createClass(P2pCDN, [{
     key: "systemTest",
     value: function systemTest() {
       return this.systemTest;
     }
   }]);
 
-  return p2pCDN;
+  return P2pCDN;
 }();
 /*! modernizr 3.6.0 (Custom Build) | MIT *
  * https://modernizr.com/download/?-MessageChannel-applicationcache-cookies-customevent-datachannel-dataview-getusermedia-indexeddb-peerconnection-postmessage-quotamanagement-serviceworker-websockets !*/
