@@ -10,6 +10,7 @@ class ServiceWorkerMiddleware {
     const sw = navigator.serviceWorker || {};
 
     if(typeof(sw) === 'undefined' || typeof(idbKeyval) === 'undefined'){
+      this.log("Failed to register service worker");
       return false;
     }
 
