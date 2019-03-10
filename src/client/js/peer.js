@@ -5,11 +5,11 @@ class Peer {
     this.log = getLogger('openhpi:peer');
     this.log('setup');
 
-    this.signaling = new Signaling();
+    this.signaling = new Signaling(config);
     this.serviceWorker = new ServiceWorkerMiddleware(config);
 
     this.stunServer = config.stunServer;
-    this.peerId = undefined;
+    this.peerId = this.config.clientId;
     this.peers = [];
     this.requests = [];
     this.cacheNotification = [];
@@ -28,9 +28,6 @@ class Peer {
     });
 
     this._registerEvents();
-
-    // Send handshake to server
-    this.signaling.hello(this.channel);
   }
 
   _updateUI() {
@@ -53,10 +50,11 @@ class Peer {
     );
   }
 
+  // TODO
   _onReceiveId(event) {
-    this.peerId = event.detail;
-    this._updateUI();
-    this._updateSW();
+    // this.peerId = event.detail;
+    // this._updateUI();
+    // this._updateSW();
   }
 
   _onAddedResource(event) {
@@ -70,6 +68,9 @@ class Peer {
   }
 
   _onNewConnection(event) {
+    if(event.detail === this.peerId){
+      return;
+    }
     this.connectTo(event.detail);
     this._updateUI();
   }
@@ -191,7 +192,8 @@ class Peer {
 
   _sendToPeer(peer, msgType, hash, dataAb = undefined) {
     const typeAb = strToAb(msgType);
-    const fromAb = strToAb(this.peerId);
+    var peerId = "0".repeat(this.message.sizes.peerId-this.peerId.toString().length) + this.peerId
+    const fromAb = strToAb(peerId);
     const hashAb = strToAb(hash);
 
     let msg;
@@ -523,8 +525,13 @@ class Peer {
   }
 
   receiveSignalMessage(peerId, message) {
+    //Todo: ensure that this never happens
+    if(!peerId || peerId === this.peerId){
+      return;
+    }
     let peer = this._getPeer(peerId);
 
+    // potential loop since connectTo calls this method
     if (!peer) {
       this.connectTo(peerId, false);
       peer = this._getPeer(peerId);
