@@ -165,49 +165,63 @@ var _createClass = function () { function defineProperties(target, props) { for 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var Signaling = function () {
-  function Signaling() {
+  function Signaling(config) {
     _classCallCheck(this, Signaling);
 
     this.log = getLogger('openhpi:client-signaling');
     this.log('setup');
-    this.socket = io.connect(window.location.origin, { forceNew: true });
+    this.channel = config.channel;
+    this.peerId = config.clientId;
+    // this.socket = new SocketIOConnection();
+    this.socket = new FayeConnection();
     this._dispatcher();
+    this.join();
   }
 
   _createClass(Signaling, [{
+    key: 'join',
+    value: function join() {
+      this.socket.send('joined', { peerId: this.peerId });
+    }
+  }, {
     key: '_dispatcher',
     value: function _dispatcher() {
       this.socket.on('created', this._onCreated.bind(this));
       this.socket.on('joined', this._onJoined.bind(this));
       this.socket.on('closed', this._onClosed.bind(this));
       this.socket.on('ready', this._onReady.bind(this));
-      this.socket.on('message', this._onMessage.bind(this));
+      this.socket.on('message/' + this.peerId, this._onMessage.bind(this));
     }
   }, {
     key: '_onCreated',
-    value: function _onCreated(channel, peerId) {
-      this.log('created channel %s, peerId %s', channel, peerId);
+    value: function _onCreated(message) {
+      this.log('created channel %s, peerId %s', this.channel, message.peerId);
 
-      document.dispatchEvent(new CustomEvent('peer:onReceiveId', { detail: peerId }));
+      document.dispatchEvent(new CustomEvent('peer:onReceiveId', { detail: message.peerId }));
     }
   }, {
     key: '_onJoined',
-    value: function _onJoined(channel, peerId) {
-      this.log('joined channel %s, peerId %s ', channel, peerId);
+    value: function _onJoined(message) {
+      var peerId = message.peerId;
+      this.log('joined channel %s, peerId %s ', this.channel, peerId);
 
       document.dispatchEvent(new CustomEvent('peer:onReceiveId', { detail: peerId }));
-    }
-  }, {
-    key: '_onReady',
-    value: function _onReady(peerId) {
       this.log('client %s has been joined.', peerId);
       document.dispatchEvent(new CustomEvent('peer:onNewConnection', { detail: peerId }));
     }
   }, {
+    key: '_onReady',
+    value: function _onReady(peerId) {
+      // this.log('client %s has been joined.', peerId);
+      // document.dispatchEvent(
+      //     new CustomEvent('peer:onNewConnection', {detail: peerId})
+      // );
+    }
+  }, {
     key: '_onMessage',
-    value: function _onMessage(from, message) {
-      this.log('received message %o from %s', message, from);
-      document.dispatchEvent(new CustomEvent('peer:onSignalingMessage', { detail: { message: message, peerId: from } }));
+    value: function _onMessage(message) {
+      this.log('received message %o from %s', message.message, message.peerId);
+      document.dispatchEvent(new CustomEvent('peer:onSignalingMessage', { detail: { message: message.message, peerId: message.peerId } }));
     }
   }, {
     key: '_onClosed',
@@ -219,13 +233,13 @@ var Signaling = function () {
     key: 'hello',
     value: function hello(channel) {
       this.log('send hello for channel %s', channel);
-      this.socket.emit('hello', channel);
+      this.socket.send('hello', channel);
     }
   }, {
     key: 'send',
     value: function send(to, message) {
       this.log('send message %o to client %s', message, to);
-      this.socket.emit('message', to, message);
+      this.socket.sendTo('message', to, { peerId: this.peerId, message: message });
     }
   }]);
 
@@ -245,11 +259,11 @@ var Peer = function () {
     this.log = getLogger('openhpi:peer');
     this.log('setup');
 
-    this.signaling = new Signaling();
+    this.signaling = new Signaling(config);
     this.serviceWorker = new ServiceWorkerMiddleware(config);
 
     this.stunServer = config.stunServer;
-    this.peerId = undefined;
+    this.peerId = this.config.clientId;
     this.peers = [];
     this.requests = [];
     this.cacheNotification = [];
@@ -268,9 +282,6 @@ var Peer = function () {
     });
 
     this._registerEvents();
-
-    // Send handshake to server
-    this.signaling.hello(this.channel);
   }
 
   _createClass(Peer, [{
@@ -287,12 +298,15 @@ var Peer = function () {
     value: function _updateSW() {
       document.dispatchEvent(new CustomEvent('sw:clientReady'));
     }
+
+    // TODO
+
   }, {
     key: '_onReceiveId',
     value: function _onReceiveId(event) {
-      this.peerId = event.detail;
-      this._updateUI();
-      this._updateSW();
+      // this.peerId = event.detail;
+      // this._updateUI();
+      // this._updateSW();
     }
   }, {
     key: '_onAddedResource',
@@ -309,6 +323,9 @@ var Peer = function () {
   }, {
     key: '_onNewConnection',
     value: function _onNewConnection(event) {
+      if (event.detail === this.peerId) {
+        return;
+      }
       this.connectTo(event.detail);
       this._updateUI();
     }
@@ -450,7 +467,8 @@ var Peer = function () {
       var dataAb = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : undefined;
 
       var typeAb = strToAb(msgType);
-      var fromAb = strToAb(this.peerId);
+      var peerId = "0".repeat(this.message.sizes.peerId - this.peerId.toString().length) + this.peerId;
+      var fromAb = strToAb(peerId);
       var hashAb = strToAb(hash);
 
       var msg = void 0;
@@ -807,8 +825,13 @@ var Peer = function () {
     value: function receiveSignalMessage(peerId, message) {
       var _this6 = this;
 
+      //Todo: ensure that this never happens
+      if (!peerId || peerId === this.peerId) {
+        return;
+      }
       var peer = this._getPeer(peerId);
 
+      // potential loop since connectTo calls this method
       if (!peer) {
         this.connectTo(peerId, false);
         peer = this._getPeer(peerId);
@@ -971,8 +994,14 @@ var _createClass = function () { function defineProperties(target, props) { for 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var P2pCDN = function () {
+  // TOdo apply to peer
   function P2pCDN(config) {
     _classCallCheck(this, P2pCDN);
+
+    var idLength = 24;
+
+    // Fixed id size is needed for binary data transmission via datachannels
+    config.clientId = "0".repeat(idLength - config.clientId.toString().length) + config.clientId;
 
     this.systemTest = new SystemTest(this);
     this.peer = new Peer(config);
@@ -986,6 +1015,81 @@ var P2pCDN = function () {
   }]);
 
   return P2pCDN;
+}();
+'use strict';
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var SocketIOConnection = function () {
+  function SocketIOConnection() {
+    _classCallCheck(this, SocketIOConnection);
+
+    this.log = getLogger('openhpi:client-signaling');
+    this.log('setup');
+    this.socket = io.connect(window.location.origin, { forceNew: true });
+  }
+
+  _createClass(SocketIOConnection, [{
+    key: 'on',
+    value: function on(event, callback) {
+      this.socket.on(event, callback);
+    }
+  }, {
+    key: 'emit',
+    value: function emit(type, channel, message) {
+      this.socket.emit(type, channel, message);
+    }
+  }]);
+
+  return SocketIOConnection;
+}();
+'use strict';
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var FayeConnection = function () {
+  function FayeConnection() {
+    _classCallCheck(this, FayeConnection);
+
+    this.log = getLogger('openhpi:client-signaling');
+    this.log('setup');
+    this.client = new Faye.Client(window.location.origin + '/faye');
+    // Logger = {
+    //   incoming: function(message, callback) {
+    //     console.log('incoming', message);
+    //     callback(message);
+    //   },
+    //   outgoing: function(message, callback) {
+    //     console.log('outgoing', message);
+    //     callback(message);
+    //   }
+    // };
+    //
+    // this.client.addExtension(Logger);
+  }
+
+  _createClass(FayeConnection, [{
+    key: 'on',
+    value: function on(channel, callback) {
+      this.client.subscribe('/' + channel, callback);
+    }
+  }, {
+    key: 'send',
+    value: function send(channel, message) {
+      this.client.publish('/' + channel, message);
+    }
+  }, {
+    key: 'sendTo',
+    value: function sendTo(channel, to, message) {
+      this.client.publish('/' + channel + '/' + to, message);
+    }
+  }]);
+
+  return FayeConnection;
 }();
 /*! modernizr 3.6.0 (Custom Build) | MIT *
  * https://modernizr.com/download/?-MessageChannel-applicationcache-cookies-customevent-datachannel-dataview-getusermedia-indexeddb-peerconnection-postmessage-quotamanagement-serviceworker-websockets !*/
