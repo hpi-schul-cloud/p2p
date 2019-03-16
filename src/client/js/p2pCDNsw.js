@@ -245,7 +245,7 @@ self.addEventListener('fetch', function(event) {
 
   console.log('received request: ' + url);
 
-  if (!new RegExp(urlsToShare, 'gi').test(url.pathname)) return;
+  if (!new RegExp(urlsToShare, 'gi').test(url.href)) return;
 
   console.log('sw handles request: ' + url);
 
