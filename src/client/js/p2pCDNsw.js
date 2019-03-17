@@ -7,7 +7,9 @@ let hasClientConnection = false;
 
 self.addEventListener('install', function(event) {
   event.waitUntil(self.skipWaiting());
+});
 
+function setConfig(){
   idbKeyval.get('swConfig').then(function(wsConfig){
     config = wsConfig;
 
@@ -15,8 +17,7 @@ self.addEventListener('install', function(event) {
       urlsToShare = config.urlsToShare.join('|');
     }
   });
-
-});
+}
 
 self.addEventListener('activate', function(event) {
   // hasClientConnection = false;
@@ -245,6 +246,8 @@ self.addEventListener('fetch', function(event) {
 
   console.log('received request: ' + url);
 
+  if (urlsToShare === "") return;
+
   if (!new RegExp(urlsToShare, 'gi').test(url.href)) return;
 
   console.log('sw handles request: ' + url);
@@ -273,6 +276,7 @@ self.addEventListener('message', function(event) {
       });
     });
   } else if (msg.type === 'status' && msg.msg === 'ready') {
+    setConfig();
     hasClientConnection = true;
   }
 });
