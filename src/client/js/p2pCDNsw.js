@@ -246,7 +246,10 @@ self.addEventListener('fetch', function(event) {
 
   console.log('received request: ' + url);
 
-  if (urlsToShare === "") return;
+  if (urlsToShare === "") {
+    setConfig();
+    return;
+  }
 
   if (!new RegExp(urlsToShare, 'gi').test(url.href)) return;
 

@@ -189,7 +189,6 @@ var Signaling = function () {
       this.socket.on('created', this._onCreated.bind(this));
       this.socket.on('joined', this._onJoined.bind(this));
       this.socket.on('closed', this._onClosed.bind(this));
-      this.socket.on('ready', this._onReady.bind(this));
       this.socket.on('message/' + this.peerId, this._onMessage.bind(this));
     }
   }, {
@@ -203,19 +202,9 @@ var Signaling = function () {
     key: '_onJoined',
     value: function _onJoined(message) {
       var peerId = message.peerId;
-      this.log('joined channel %s, peerId %s ', this.channel, peerId);
 
-      document.dispatchEvent(new CustomEvent('peer:onReceiveId', { detail: peerId }));
       this.log('client %s has been joined.', peerId);
       document.dispatchEvent(new CustomEvent('peer:onNewConnection', { detail: peerId }));
-    }
-  }, {
-    key: '_onReady',
-    value: function _onReady(peerId) {
-      // this.log('client %s has been joined.', peerId);
-      // document.dispatchEvent(
-      //     new CustomEvent('peer:onNewConnection', {detail: peerId})
-      // );
     }
   }, {
     key: '_onMessage',
@@ -767,6 +756,27 @@ var Peer = function () {
       };
     }
   }, {
+    key: 'addPeer',
+    value: function addPeer(peerID) {
+      var peer = {
+        id: peerID,
+        con: new RTCPeerConnection(this.stunServer),
+        dataChannel: null,
+        resources: [],
+        requestQueue: []
+      };
+      this.removePeer(peerID);
+      // var index = this.peers.map(x => x.id).indexOf(peer.id);
+      //
+      // if(index > -1) {
+      //   this.peers[index] = peer;
+      //   return peer;
+      // }
+      this.peers.push(peer);
+
+      return peer;
+    }
+  }, {
     key: 'connectTo',
     value: function connectTo(peerID) {
       var _this5 = this;
@@ -775,15 +785,7 @@ var Peer = function () {
 
       this.log('creating connection as initiator? %s', isInitiator);
 
-      var peer = {
-        id: peerID,
-        con: new RTCPeerConnection(this.stunServer),
-        dataChannel: null,
-        resources: [],
-        requestQueue: []
-      };
-
-      this.peers.push(peer);
+      var peer = this.addPeer(peerID);
 
       peer.con.onicecandidate = function (event) {
         _this5.log('icecandidate event: %o', event);

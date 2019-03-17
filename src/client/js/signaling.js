@@ -19,7 +19,6 @@ class Signaling {
     this.socket.on('created', this._onCreated.bind(this));
     this.socket.on('joined', this._onJoined.bind(this));
     this.socket.on('closed', this._onClosed.bind(this));
-    this.socket.on('ready', this._onReady.bind(this));
     this.socket.on('message/' + this.peerId, this._onMessage.bind(this));
   }
 
@@ -33,22 +32,11 @@ class Signaling {
 
   _onJoined(message) {
     let peerId = message.peerId
-    this.log('joined channel %s, peerId %s ', this.channel, peerId);
 
-    document.dispatchEvent(
-        new CustomEvent('peer:onReceiveId', {detail: peerId})
-    );
     this.log('client %s has been joined.', peerId);
     document.dispatchEvent(
         new CustomEvent('peer:onNewConnection', {detail: peerId})
     );
-  }
-
-  _onReady(peerId) {
-    // this.log('client %s has been joined.', peerId);
-    // document.dispatchEvent(
-    //     new CustomEvent('peer:onNewConnection', {detail: peerId})
-    // );
   }
 
   _onMessage(message) {
