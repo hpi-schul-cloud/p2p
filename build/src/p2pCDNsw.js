@@ -248,7 +248,10 @@ self.addEventListener('fetch', function(event) {
 
   console.log('received request: ' + url);
 
-  if (urlsToShare === "") return;
+  if (urlsToShare === "") {
+    setConfig();
+    return;
+  }
 
   if (!new RegExp(urlsToShare, 'gi').test(url.href)) return;
 
@@ -355,6 +358,8 @@ function concatAbs(abs) {
 async function notifyPeers(hash, clientID, type) {
   const msg = {type: type, hash};
   const client = await clients.get(clientID);
+
+  if(!client) return;
 
   client.postMessage(msg);
 }

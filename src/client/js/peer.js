@@ -474,9 +474,7 @@ class Peer {
     };
   }
 
-  connectTo(peerID, isInitiator = true) {
-    this.log('creating connection as initiator? %s', isInitiator);
-
+  addPeer(peerID){
     const peer = {
       id: peerID,
       con: new RTCPeerConnection(this.stunServer),
@@ -484,8 +482,22 @@ class Peer {
       resources: [],
       requestQueue: [],
     };
-
+    this.removePeer(peerID);
+    // var index = this.peers.map(x => x.id).indexOf(peer.id);
+    //
+    // if(index > -1) {
+    //   this.peers[index] = peer;
+    //   return peer;
+    // }
     this.peers.push(peer);
+
+    return peer;
+  }
+
+  connectTo(peerID, isInitiator = true) {
+    this.log('creating connection as initiator? %s', isInitiator);
+
+    const peer = this.addPeer(peerID);
 
     peer.con.onicecandidate = event => {
       this.log('icecandidate event: %o', event);
