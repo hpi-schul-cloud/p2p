@@ -262,7 +262,7 @@ var Peer = function () {
       types: { addedResource: 1, removedResource: 2, request: 3, chunk: 4, response: 5 },
       sizes: { // in byte
         type: 1,
-        peerId: 24,
+        peerId: config.idLength,
         hash: 64,
         chunkId: 8,
         chunkCount: 8,
@@ -1000,10 +1000,15 @@ var P2pCDN = function () {
   function P2pCDN(config) {
     _classCallCheck(this, P2pCDN);
 
-    var idLength = 24;
+    var idLength = config.idLength;
 
     // Fixed id size is needed for binary data transmission via datachannels
-    config.clientId = "0".repeat(idLength - config.clientId.toString().length) + config.clientId;
+    var adjustCount = idLength - config.clientId.toString().length;
+    if (adjustCount < 0) {
+      config.clientId = config.clientId.slice(0, idLength);
+    } else {
+      config.clientId = "0".repeat(adjustCount) + config.clientId;
+    }
 
     this.systemTest = new SystemTest(this);
     this.peer = new Peer(config);

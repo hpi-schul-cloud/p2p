@@ -19,7 +19,7 @@ class Peer {
       types: {addedResource: 1, removedResource: 2, request: 3, chunk: 4, response: 5},
       sizes: { // in byte
         type: 1,
-        peerId: 24,
+        peerId: config.idLength,
         hash: 64,
         chunkId: 8,
         chunkCount: 8,
