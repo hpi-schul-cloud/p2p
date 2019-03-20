@@ -213,8 +213,9 @@ function handleRequest(url, clientId) {
     sha256(url).then(hash => {
       // check cache
       getFromCache(hash).then(cacheResponse => {
-        console.log('cacheResponse ', cacheResponse);
         if (cacheResponse && cachingEnabled) {
+          console.log('cacheResponse ', cacheResponse);
+
           // This notify should not be needed
           notifyPeersAboutAdd(hash, clientId);
           resolve(cacheResponse);
@@ -222,8 +223,8 @@ function handleRequest(url, clientId) {
         }
         // check peers
         getFromClient(clientId, hash).then(peerResponse => {
-          console.log('peerResponse ', peerResponse);
           if (peerResponse) {
+            console.log('peerResponse ', peerResponse);
             putIntoCache(hash, peerResponse, clientId);
             notifyPeersAboutAdd(hash, clientId);
             resolve(peerResponse);
@@ -258,7 +259,6 @@ self.addEventListener('fetch', function(event) {
   console.log('sw handles request: ' + url);
 
   if (!event.clientId) return;
-  // if (url.origin !== location.origin) return;
 
   console.log('fetch --> ', event.request.url);
 
