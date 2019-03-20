@@ -307,7 +307,6 @@ var Peer = function () {
       document.addEventListener('peer:onNewConnection', this._onNewConnection.bind(this));
       document.addEventListener('peer:onRequestResource', this._onRequestResource.bind(this));
       document.addEventListener('peer:onSignalingMessage', this._onSignalingMessage.bind(this));
-      window.addEventListener("beforeunload", this._close.bind(this));
     }
   }, {
     key: '_getPeerIdx',
