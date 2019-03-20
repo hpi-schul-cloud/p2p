@@ -172,7 +172,6 @@ var Signaling = function () {
     this.log('setup');
     this.channel = config.channel;
     this.peerId = config.clientId;
-    // this.socket = new SocketIOConnection();
     this.socket = new FayeConnection();
     this._dispatcher();
     this.join();
@@ -186,17 +185,8 @@ var Signaling = function () {
   }, {
     key: '_dispatcher',
     value: function _dispatcher() {
-      this.socket.on('created', this._onCreated.bind(this));
       this.socket.on('joined', this._onJoined.bind(this));
-      this.socket.on('closed', this._onClosed.bind(this));
       this.socket.on('message/' + this.peerId, this._onMessage.bind(this));
-    }
-  }, {
-    key: '_onCreated',
-    value: function _onCreated(message) {
-      this.log('created channel %s, peerId %s', this.channel, message.peerId);
-
-      document.dispatchEvent(new CustomEvent('peer:onReceiveId', { detail: message.peerId }));
     }
   }, {
     key: '_onJoined',
@@ -211,18 +201,6 @@ var Signaling = function () {
     value: function _onMessage(message) {
       this.log('received message %o from %s', message.message, message.peerId);
       document.dispatchEvent(new CustomEvent('peer:onSignalingMessage', { detail: { message: message.message, peerId: message.peerId } }));
-    }
-  }, {
-    key: '_onClosed',
-    value: function _onClosed(peerId) {
-      this.log('peer %s closed connection', peerId);
-      document.dispatchEvent(new CustomEvent('peer:onClose', { detail: peerId }));
-    }
-  }, {
-    key: 'hello',
-    value: function hello(channel) {
-      this.log('send hello for channel %s', channel);
-      this.socket.send('hello', channel);
     }
   }, {
     key: 'send',
@@ -287,16 +265,6 @@ var Peer = function () {
     value: function _updateSW() {
       document.dispatchEvent(new CustomEvent('sw:clientReady'));
     }
-
-    // TODO
-
-  }, {
-    key: '_onReceiveId',
-    value: function _onReceiveId(event) {
-      // this.peerId = event.detail;
-      // this._updateUI();
-      // this._updateSW();
-    }
   }, {
     key: '_onAddedResource',
     value: function _onAddedResource(event) {
@@ -332,21 +300,14 @@ var Peer = function () {
       this._updateUI();
     }
   }, {
-    key: '_onClosed',
-    value: function _onClosed(event) {
-      this.removePeer(event.detail);
-      this._updateUI();
-    }
-  }, {
     key: '_registerEvents',
     value: function _registerEvents() {
-      document.addEventListener('peer:onReceiveId', this._onReceiveId.bind(this));
       document.addEventListener('peer:onAddedResource', this._onAddedResource.bind(this));
       document.addEventListener('peer:onRemovedResource', this._onRemovedResource.bind(this));
       document.addEventListener('peer:onNewConnection', this._onNewConnection.bind(this));
       document.addEventListener('peer:onRequestResource', this._onRequestResource.bind(this));
       document.addEventListener('peer:onSignalingMessage', this._onSignalingMessage.bind(this));
-      document.addEventListener('peer:onClose', this._onClosed.bind(this));
+      window.addEventListener("beforeunload", this._close.bind(this));
     }
   }, {
     key: '_getPeerIdx',
@@ -766,16 +727,14 @@ var Peer = function () {
         requestQueue: []
       };
       this.removePeer(peerID);
-      // var index = this.peers.map(x => x.id).indexOf(peer.id);
-      //
-      // if(index > -1) {
-      //   this.peers[index] = peer;
-      //   return peer;
-      // }
+
       this.peers.push(peer);
 
       return peer;
     }
+  }, {
+    key: '_peerDisconnected',
+    value: function _peerDisconnected(e) {}
   }, {
     key: 'connectTo',
     value: function connectTo(peerID) {
@@ -799,6 +758,13 @@ var Peer = function () {
             sdpMLineIndex: event.candidate.sdpMLineIndex,
             candidate: event.candidate.candidate
           });
+        }
+      };
+
+      peer.con.oniceconnectionstatechange = function (event) {
+        if (event.target.iceConnectionState == 'disconnected') {
+          _this5.removePeer(peerID);
+          console.log('Disconnected');
         }
       };
 
@@ -1029,54 +995,11 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var SocketIOConnection = function () {
-  function SocketIOConnection() {
-    _classCallCheck(this, SocketIOConnection);
-
-    this.log = getLogger('openhpi:client-signaling');
-    this.log('setup');
-    this.socket = io.connect(window.location.origin, { forceNew: true });
-  }
-
-  _createClass(SocketIOConnection, [{
-    key: 'on',
-    value: function on(event, callback) {
-      this.socket.on(event, callback);
-    }
-  }, {
-    key: 'emit',
-    value: function emit(type, channel, message) {
-      this.socket.emit(type, channel, message);
-    }
-  }]);
-
-  return SocketIOConnection;
-}();
-'use strict';
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
 var FayeConnection = function () {
   function FayeConnection() {
     _classCallCheck(this, FayeConnection);
 
-    this.log = getLogger('openhpi:client-signaling');
-    this.log('setup');
     this.client = new Faye.Client(window.location.origin + '/faye');
-    // Logger = {
-    //   incoming: function(message, callback) {
-    //     console.log('incoming', message);
-    //     callback(message);
-    //   },
-    //   outgoing: function(message, callback) {
-    //     console.log('outgoing', message);
-    //     callback(message);
-    //   }
-    // };
-    //
-    // this.client.addExtension(Logger);
   }
 
   _createClass(FayeConnection, [{

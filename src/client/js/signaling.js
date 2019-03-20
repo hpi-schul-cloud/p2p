@@ -5,7 +5,6 @@ class Signaling {
     this.log('setup');
     this.channel = config.channel;
     this.peerId = config.clientId
-    // this.socket = new SocketIOConnection();
     this.socket = new FayeConnection();
     this._dispatcher();
     this.join();
@@ -16,18 +15,8 @@ class Signaling {
   }
 
   _dispatcher() {
-    this.socket.on('created', this._onCreated.bind(this));
     this.socket.on('joined', this._onJoined.bind(this));
-    this.socket.on('closed', this._onClosed.bind(this));
     this.socket.on('message/' + this.peerId, this._onMessage.bind(this));
-  }
-
-  _onCreated(message) {
-    this.log('created channel %s, peerId %s', this.channel, message.peerId);
-
-    document.dispatchEvent(
-        new CustomEvent('peer:onReceiveId', {detail: message.peerId})
-    );
   }
 
   _onJoined(message) {
@@ -44,19 +33,7 @@ class Signaling {
     document.dispatchEvent(
         new CustomEvent('peer:onSignalingMessage',
             { detail: { message: message.message, peerId: message.peerId } })
-    );
-  }
-
-  _onClosed(peerId) {
-    this.log('peer %s closed connection', peerId);
-    document.dispatchEvent(
-        new CustomEvent('peer:onClose', { detail: peerId })
-    );
-  }
-
-  hello(channel) {
-    this.log('send hello for channel %s', channel);
-    this.socket.send('hello', channel);
+      );
   }
 
   send(to, message) {

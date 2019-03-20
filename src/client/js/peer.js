@@ -50,13 +50,6 @@ class Peer {
     );
   }
 
-  // TODO
-  _onReceiveId(event) {
-    // this.peerId = event.detail;
-    // this._updateUI();
-    // this._updateSW();
-  }
-
   _onAddedResource(event) {
     this.updatePeers(event.detail, this.message.types.addedResource);
     this._updateUI();
@@ -86,19 +79,13 @@ class Peer {
     this._updateUI();
   }
 
-  _onClosed(event) {
-    this.removePeer(event.detail);
-    this._updateUI();
-  }
-
   _registerEvents() {
-    document.addEventListener('peer:onReceiveId', this._onReceiveId.bind(this));
     document.addEventListener('peer:onAddedResource', this._onAddedResource.bind(this));
     document.addEventListener('peer:onRemovedResource', this._onRemovedResource.bind(this));
     document.addEventListener('peer:onNewConnection', this._onNewConnection.bind(this));
     document.addEventListener('peer:onRequestResource', this._onRequestResource.bind(this));
     document.addEventListener('peer:onSignalingMessage', this._onSignalingMessage.bind(this));
-    document.addEventListener('peer:onClose', this._onClosed.bind(this));
+    window.addEventListener("beforeunload", this._close.bind(this));
   }
 
   _getPeerIdx(peerId) {
@@ -483,17 +470,15 @@ class Peer {
       requestQueue: [],
     };
     this.removePeer(peerID);
-    // var index = this.peers.map(x => x.id).indexOf(peer.id);
-    //
-    // if(index > -1) {
-    //   this.peers[index] = peer;
-    //   return peer;
-    // }
+
     this.peers.push(peer);
 
     return peer;
   }
 
+  _peerDisconnected(e){
+
+  }
   connectTo(peerID, isInitiator = true) {
     this.log('creating connection as initiator? %s', isInitiator);
 
@@ -513,6 +498,13 @@ class Peer {
         });
       }
     };
+
+    peer.con.oniceconnectionstatechange = event => {
+      if(event.target.iceConnectionState == 'disconnected') {
+        this.removePeer(peerID);
+        console.log('Disconnected');
+      }
+    }
 
     if (isInitiator) {
       this.log('creating data channel');
