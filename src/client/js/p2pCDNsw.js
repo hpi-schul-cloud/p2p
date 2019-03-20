@@ -1,6 +1,5 @@
 const CACHE_NAME = 'P2P-CDN-v1';
 const version = '1.2.3';
-const cachingEnabled = false;
 var config = {}
 var urlsToShare = "";
 let hasClientConnection = false;
@@ -211,7 +210,7 @@ function handleRequest(url, clientId) {
     sha256(url).then(hash => {
       // check cache
       getFromCache(hash).then(cacheResponse => {
-        if (cacheResponse && cachingEnabled) {
+        if (cacheResponse && config.cachingEnabled) {
           console.log('cacheResponse ', cacheResponse);
 
           // This notify should not be needed
