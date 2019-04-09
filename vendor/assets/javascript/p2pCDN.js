@@ -965,6 +965,8 @@ var P2pCDN = function () {
   function P2pCDN(config) {
     _classCallCheck(this, P2pCDN);
 
+    if (!config.clientId) return;
+
     var idLength = config.idLength;
 
     // Fixed id size is needed for binary data transmission via datachannels

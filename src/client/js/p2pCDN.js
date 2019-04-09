@@ -1,6 +1,8 @@
 class P2pCDN {
   // TOdo apply to peer
   constructor(config) {
+    if(!config.clientId) return;
+    
     const idLength = config.idLength;
 
     // Fixed id size is needed for binary data transmission via datachannels

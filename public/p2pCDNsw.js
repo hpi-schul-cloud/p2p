@@ -4,6 +4,7 @@ const CACHE_NAME = 'P2P-CDN-v1';
 const version = '1.2.3';
 var config = {}
 var urlsToShare = "";
+var excludedUrls;
 let hasClientConnection = false;
 
 self.addEventListener('install', function(event) {
@@ -14,8 +15,13 @@ function setConfig(){
   idbKeyval.get('swConfig').then(function(wsConfig){
     config = wsConfig;
 
-    if(typeof(config) !== 'undefined' && typeof(config.urlsToShare) !== 'undefined'){
-      urlsToShare = config.urlsToShare.join('|');
+    if(typeof(config) !== 'undefined'){
+      if(typeof(config.urlsToShare) !== 'undefined') {
+        urlsToShare = config.urlsToShare.join('|');
+      }
+      if(typeof(config.excludedUrls) !== 'undefined') {
+        excludedUrls = config.excludedUrls.join('|');
+      }
     }
   });
 }
@@ -254,7 +260,8 @@ self.addEventListener('fetch', function(event) {
   }
 
   if (!new RegExp(urlsToShare, 'gi').test(url.href)) return;
-
+  if (excludedUrls && new RegExp(excludedUrls, 'gi').test(url.href)) return;
+  
   console.log('sw handles request: ' + url);
 
   if (!event.clientId) return;
