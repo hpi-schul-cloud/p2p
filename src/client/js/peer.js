@@ -2,8 +2,13 @@ class Peer {
 
   constructor(config) {
     this.config = config
-    this.log = getLogger('openhpi:peer');
-    this.log('setup');
+    
+    if(config.verbose) {
+      this.log = getLogger('openhpi:peer');
+      this.log('setup');
+    } else {
+      this.log = function(message) {}
+    }
 
     this.signaling = new Signaling(config);
     this.serviceWorker = new ServiceWorkerMiddleware(config);

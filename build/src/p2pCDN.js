@@ -10,8 +10,13 @@ var ServiceWorkerMiddleware = function () {
   function ServiceWorkerMiddleware(config) {
     _classCallCheck(this, ServiceWorkerMiddleware);
 
-    this.log = getLogger('openhpi:ServiceWorkerMiddleware');
-    this.log('setup');
+    if (config.verbose) {
+      this.log = getLogger('openhpi:ServiceWorkerMiddleware');
+      this.log('setup');
+    } else {
+      this.log = function (message) {};
+    }
+
     this._initServiceWorker(config.serviceWorker);
   }
 
@@ -168,8 +173,13 @@ var Signaling = function () {
   function Signaling(config) {
     _classCallCheck(this, Signaling);
 
-    this.log = getLogger('openhpi:client-signaling');
-    this.log('setup');
+    if (config.verbose) {
+      this.log = getLogger('openhpi:client-signaling');
+      this.log('setup');
+    } else {
+      this.log = function (message) {};
+    }
+
     this.channel = config.channel;
     this.peerId = config.clientId;
     this.socket = new FayeConnection();
@@ -223,8 +233,13 @@ var Peer = function () {
     _classCallCheck(this, Peer);
 
     this.config = config;
-    this.log = getLogger('openhpi:peer');
-    this.log('setup');
+
+    if (config.verbose) {
+      this.log = getLogger('openhpi:peer');
+      this.log('setup');
+    } else {
+      this.log = function (message) {};
+    }
 
     this.signaling = new Signaling(config);
     this.serviceWorker = new ServiceWorkerMiddleware(config);

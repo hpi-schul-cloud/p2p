@@ -9,6 +9,12 @@ self.addEventListener('install', function(event) {
   event.waitUntil(self.skipWaiting());
 });
 
+function log(message) {
+  if(this.config.verbose){
+    console.log(message)
+  }
+}
+
 function setConfig(){
   idbKeyval.get('swConfig').then(function(wsConfig){
     config = wsConfig;
@@ -47,7 +53,7 @@ function isClientReady(client){
       if (!receivedResponse) {
         msg_chan.port1.close();
         msg_chan.port2.close();
-        console.log("client not ready")
+        log("client not ready")
         resolve(false)
       }
     }, timeout);
@@ -72,7 +78,7 @@ function sendMessageToClient(msg, clientID) {
     // Handler for receiving message reply from service worker
     msg_chan.port1.onmessage = function(event) {
       receivedResponse = true;
-      console.log('received message from client ', event.data);
+      log('received message from client ', event.data);
       resolve(event);
     };
 
@@ -81,7 +87,7 @@ function sendMessageToClient(msg, clientID) {
       if (!receivedResponse) {
         msg_chan.port1.close();
         msg_chan.port2.close();
-        console.log('close message channel');
+        log('close message channel');
         resolve(false);
       }
     }, timeout);
@@ -114,7 +120,7 @@ function getFromCache(key) {
 }
 
 async function getFromClient(clientId, hash) {
-  console.log('ask client to get: ', hash);
+  log('ask client to get: ', hash);
   // if(!hasClientConnection){
   //   console.log("client is not ready");
   //   return undefined;
@@ -167,7 +173,7 @@ async function getRequestSize(request){
 async function freeStorage(clientId){
   return new Promise(resolve =>{
 
-    console.log("starting to free storage");
+    log("starting to free storage");
     caches.open(version).then(cache => {
       cache.keys().then(keys => {
         if(keys[0]){
@@ -178,7 +184,7 @@ async function freeStorage(clientId){
           const urlArray = keys[0].url.split("/");
           const hash = urlArray[urlArray.length-1];
           notifyPeersAboutRemove(hash, clientId)
-          console.log("Removed " + keys[0] + "from the cache")
+          log("Removed " + keys[0] + "from the cache")
         } else{
           resolve();
         }
@@ -217,7 +223,7 @@ function handleRequest(url, clientId) {
       // check cache
       getFromCache(hash).then(cacheResponse => {
         if (cacheResponse && config.cachingEnabled) {
-          console.log('cacheResponse ', cacheResponse);
+          log('cacheResponse ', cacheResponse);
 
           // This notify should not be needed
           notifyPeersAboutAdd(hash, clientId);
@@ -227,7 +233,7 @@ function handleRequest(url, clientId) {
         // check peers
         getFromClient(clientId, hash).then(peerResponse => {
           if (peerResponse) {
-            console.log('peerResponse ', peerResponse);
+            log('peerResponse ', peerResponse);
             putIntoCache(hash, peerResponse, clientId);
             notifyPeersAboutAdd(hash, clientId);
             resolve(peerResponse);
@@ -235,7 +241,7 @@ function handleRequest(url, clientId) {
           }
           // get from the internet
           getFromInternet(url).then(response => {
-            console.log('internet response ', response);
+            log('internet response ', response);
             putIntoCache(hash, response, clientId);
             notifyPeersAboutAdd(hash, clientId);
             resolve(response);
@@ -250,7 +256,7 @@ self.addEventListener('fetch', function(event) {
   const request = event.request;
   const url = new URL(event.request.url);
 
-  console.log('received request: ' + url);
+  log('received request: ' + url);
 
   if (urlsToShare === "") {
     setConfig();
@@ -259,12 +265,12 @@ self.addEventListener('fetch', function(event) {
 
   if (!new RegExp(urlsToShare, 'gi').test(url.href)) return;
   if (excludedUrls && new RegExp(excludedUrls, 'gi').test(url.href)) return;
-  
-  console.log('sw handles request: ' + url);
+
+  log('sw handles request: ' + url);
 
   if (!event.clientId) return;
 
-  console.log('fetch --> ', event.request.url);
+  log('fetch --> ', event.request.url);
 
   event.respondWith(handleRequest(event.request.url, event.clientId));
 });
@@ -278,9 +284,9 @@ self.addEventListener('message', function(event) {
     });
   } else if (msg.type === 'resource') {
     getFromCache(msg.resource).then(cacheResponse => {
-      console.log('cached object ', cacheResponse);
+      log('cached object ', cacheResponse);
       cacheResponse.arrayBuffer().then(buffer => {
-        console.log('got buffer ', buffer);
+        log('got buffer ', buffer);
         event.ports[0].postMessage(buffer, [buffer]);
       });
     });

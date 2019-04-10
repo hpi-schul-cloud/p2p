@@ -1,8 +1,14 @@
 class Signaling {
 
   constructor(config) {
-    this.log = getLogger('openhpi:client-signaling');
-    this.log('setup');
+
+    if(config.verbose) {
+      this.log = getLogger('openhpi:client-signaling');
+      this.log('setup');
+    } else {
+      this.log = function (message) { };
+    }
+
     this.channel = config.channel;
     this.peerId = config.clientId
     this.socket = new FayeConnection();

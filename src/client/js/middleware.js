@@ -1,8 +1,13 @@
 class ServiceWorkerMiddleware {
 
   constructor(config) {
-    this.log = getLogger('openhpi:ServiceWorkerMiddleware');
-    this.log('setup');
+    if(config.verbose) {
+      this.log = getLogger('openhpi:ServiceWorkerMiddleware');
+      this.log('setup');
+    } else {
+      this.log = function (message) {};
+    }
+
     this._initServiceWorker(config.serviceWorker);
   }
 
