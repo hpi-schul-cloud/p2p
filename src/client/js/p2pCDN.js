@@ -2,8 +2,13 @@ class P2pCDN {
   // TOdo apply to peer
   constructor(config) {
     if(!config.clientId) return;
-    
+
     const idLength = config.idLength;
+    if(config.logLevel === 'all') {
+      localStorage.debug = '*';
+    } else {
+      localStorage.debug = '*,-*:detail'
+    }
 
     // Fixed id size is needed for binary data transmission via datachannels
     const adjustCount = idLength-config.clientId.toString().length;

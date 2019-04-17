@@ -11,7 +11,7 @@ self.addEventListener('install', function(event) {
 
 function log(message) {
   if(this.config.verbose){
-    console.log(message)
+    console.log("Service Worker: %s", message)
   }
 }
 
@@ -120,7 +120,7 @@ function getFromCache(key) {
 }
 
 async function getFromClient(clientId, hash) {
-  log('ask client to get: ', hash);
+  log('Try to resource from client: ', hash);
   // if(!hasClientConnection){
   //   console.log("client is not ready");
   //   return undefined;

@@ -2,10 +2,10 @@ class Peer {
 
   constructor(config) {
     this.config = config
-    
+
     if(config.verbose) {
-      this.log = getLogger('openhpi:peer');
-      this.log('setup');
+      this.log = getLogger('p2pCDN:peer');
+      this.logDetail = getLogger('p2pCDN:peer:detail');
     } else {
       this.log = function(message) {}
     }
@@ -142,12 +142,12 @@ class Peer {
   }
 
   _onLocalSessionCreated(peerId, desc) {
-    this.log('local session created: %o', desc);
+    this.logDetail('local session created: %o', desc);
 
     const peer = this._getPeer(peerId);
 
     peer.con.setLocalDescription(desc).then(() => {
-      this.log('sending local desc: %o', peer.con.localDescription);
+      this.logDetail('sending local desc: %o', peer.con.localDescription);
       this.signaling.send(peer.id, peer.con.localDescription);
     });
   }
@@ -161,7 +161,7 @@ class Peer {
 
     switch (state) {
       case 'connecting':
-        this.log('connection not open; queueing: %s', message);
+        this.logDetail('connection not open; queueing: %s', message);
         peer.requestQueue.push(message);
         break;
       case 'open':
@@ -173,10 +173,10 @@ class Peer {
         }
         break;
       case 'closing':
-        this.log('attempted to send message while closing: %s', message);
+        this.logDetail('attempted to send message while closing: %s', message);
         break;
       case 'closed':
-        this.log('attempted to send while connection closed: %s', message);
+        this.logDetail('attempted to send while connection closed: %s', message);
         break;
     }
   }
@@ -200,7 +200,7 @@ class Peer {
   _requestPeer(peer, msgType, hash, cb) {
     const request = { from: peer.id, hash: hash, chunks: [], respond: cb };
 
-    this.log('send request to peer %s', peer.id);
+    this.log('Request resource %s from peer %s', hash, peer.id);
     this._sendToPeer(peer, msgType, hash);
     this.requests.push(request);
   }
@@ -223,7 +223,7 @@ class Peer {
   _checkCache() {
     // TODO: extract and write test
     const cb = cachedResources => {
-      this.log('cached resources %o', cachedResources);
+      this.logDetail('cached resources %o', cachedResources);
       if (cachedResources && cachedResources.length > 0) {
         this.peers.forEach(peer => {
           const alreadySent = this.cacheNotification.indexOf(peer.id) >= 0;
@@ -231,7 +231,7 @@ class Peer {
           if (!alreadySent) {
             cachedResources.forEach(hash => {
               if (peer.dataChannel) {
-                this.log('update %s about cached resource %s', peer.id, hash);
+                this.logDetail('update %s about cached resource %s', peer.id, hash);
                 this.cacheNotification.push(peer.id);
                 this._sendToPeer(peer, this.message.types.addedResource, hash);
               }
@@ -305,11 +305,11 @@ class Peer {
   _handleUpdate(message, type) {
     const peer = this._getPeer(message.from);
     if (!peer) {
-      this.log('ERROR! Could not find peer!');
+      this.logDetail('Could not send update to peer');
       return;
     }
 
-    this.log('updated peer %s with resource %s', message.from, message.hash);
+    this.logDetail('updated peer %s with resource %s', message.from, message.hash);
     if(type == this.message.types.addedResource){
       this._addResource(peer, message.hash);
       return;
@@ -332,6 +332,7 @@ class Peer {
 
   _handleResponse(message, responseAb) {
     const peer = this._getPeer(message.from);
+    this.log('Sending request %s to peer: %s', message.hash, message.from)
     if (responseAb.byteLength <= this.message.sizes.maxData) {
       this._sendToPeer(peer, this.message.types.response, message.hash, responseAb);
     } else {
@@ -357,12 +358,12 @@ class Peer {
       this._removeRequest(message.from, message.hash);
       req.respond(message.data);
     } else {
-      this.log('error, could not find response!?');
+      this.logDetail('error, could not find response!?');
     }
   }
 
   _sendChunkedToPeer(peer, hash, dataAb) {
-    this.log('have to chunk data %s', hash);
+    this.logDetail('have to chunk data %s', hash);
     const s = this.message.sizes;
     const dataSize = dataAb.byteLength;
     const chunkSize = s.maxData - (s.peerId + s.hash + s.type + s.chunkId + s.chunkCount);
@@ -404,11 +405,11 @@ class Peer {
       this._sendToPeer(peer, this.message.types.chunk, hash, chunk);
       chunkId += 1;
     }
-    this.log('sent chunked data for %s', hash);
+    this.logDetail('sent chunked data for %s', hash);
   }
 
   _concatMessage(chunks) {
-    this.log('concat message');
+    this.logDetail('concat message');
 
     chunks.sort((a, b) => {
       if (a.id < b.id) {
@@ -424,24 +425,24 @@ class Peer {
   }
 
   _onDataChannelCreated(channel) {
-    this.log('onDataChannelCreated: %o', channel);
+    this.logDetail('onDataChannelCreated: %o', channel);
 
     channel.binaryType = 'arraybuffer';
 
     channel.onopen = () => {
-      this.log('data channel opened');
+      this.logDetail('data channel opened');
       this._checkCache();
     };
 
     channel.onclose = () => {
-      this.log('data channel closed');
+      this.logDetail('data channel closed');
     };
 
     channel.onmessage = event => {
       const message = this._abToMessage(event.data);
       const types =  this.message.types;
 
-      this.log('decoded message %o', message);
+      this.logDetail('decoded message %o', message);
 
       // adapt for deletes
       switch (message.type) {
@@ -484,12 +485,12 @@ class Peer {
 
   }
   connectTo(peerID, isInitiator = true) {
-    this.log('creating connection as initiator? %s', isInitiator);
+    this.logDetail('creating connection as initiator? %s', isInitiator);
 
     const peer = this.addPeer(peerID);
 
     peer.con.onicecandidate = event => {
-      this.log('icecandidate event: %o', event);
+      this.logDetail('icecandidate event: %o', event);
 
       if (event.candidate) {
         this.signaling.send(peer.id, {
@@ -506,17 +507,17 @@ class Peer {
     peer.con.oniceconnectionstatechange = event => {
       if(event.target.iceConnectionState == 'disconnected') {
         this.removePeer(peerID);
-        console.log('Disconnected');
+        console.logDetail('Disconnected');
       }
     }
 
     if (isInitiator) {
-      this.log('creating data channel');
+      this.logDetail('creating data channel');
 
       peer.dataChannel = peer.con.createDataChannel('data');
       this._onDataChannelCreated(peer.dataChannel);
 
-      this.log('creating an offer');
+      this.logDetail('creating an offer');
 
       peer.con.createOffer().then(desc => {
         this._onLocalSessionCreated(peer.id, desc);
@@ -524,7 +525,7 @@ class Peer {
 
     } else {
       peer.con.ondatachannel = event => {
-        this.log('ondatachannel: %o', event.channel);
+        this.log('established connection to peer: %s', peer.id)
 
         peer.dataChannel = event.channel;
         this._onDataChannelCreated(peer.dataChannel);
@@ -546,7 +547,7 @@ class Peer {
     }
 
     if (message.type === 'offer') {
-      this.log('Got offer %o. Sending answer to peer.', message);
+      this.logDetail('Got offer %o. Sending answer to peer.', message);
       peer.con.setRemoteDescription(message).then(() => {
         peer.con.createAnswer().then(desc => {
           this._onLocalSessionCreated(peer.id, desc);
@@ -554,12 +555,12 @@ class Peer {
       });
 
     } else if (message.type === 'answer') {
-      this.log('Got answer. %o', message);
+      this.logDetail('Got answer. %o', message);
       peer.con.setRemoteDescription(message);
 
     } else if (message.type === 'candidate') {
       peer.con.addIceCandidate(message).then(() => {
-        this.log('Set addIceCandidate successfully %o', message);
+        this.logDetail('Set addIceCandidate successfully %o', message);
       }).catch(e => this.log('error: %o', e));
 
     }
@@ -578,7 +579,7 @@ class Peer {
         const req = this.requests[i];
 
         if(req.from === peerId){
-          this.log('remove pending request from %s', peerId);
+          this.logDetail('remove pending request from %s', peerId);
           this.requests.splice(i, 1);
         } else {
           i += 1;
@@ -590,7 +591,7 @@ class Peer {
 // TODO adapt for deletes
   updatePeers(hash, msgType) {
     if(this.peers.length > 0) {
-      this.log('broadcast peers for %s', hash);
+      this.logDetail('broadcast peers for %s', hash);
       this.peers.forEach(peer => {
         this._sendToPeer(peer, msgType, hash);
       });
@@ -598,11 +599,11 @@ class Peer {
   }
 
   requestResourceFromPeers(hash, cb) {
-    this.log('try to find a peer for %s', hash);
+    this.log('try to find a peer for resource %s', hash);
     const peers = this.peers.filter(p => p.resources.indexOf(hash) >= 0);
     const count = peers.length;
 
-    this.log('found %d peers', count);
+    this.logDetail('found %d peers', count);
 
     if (count > 0) {
       const randomPeerId = Math.floor(Math.random() * count);

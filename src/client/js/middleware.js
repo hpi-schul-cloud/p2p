@@ -2,8 +2,8 @@ class ServiceWorkerMiddleware {
 
   constructor(config) {
     if(config.verbose) {
-      this.log = getLogger('openhpi:ServiceWorkerMiddleware');
-      this.log('setup');
+      this.log = getLogger('p2pCDN:ServiceWorkerMiddleware');
+      this.logDetail = getLogger('p2pCDN:ServiceWorkerMiddleware:detail');
     } else {
       this.log = function (message) {};
     }
@@ -60,7 +60,7 @@ class ServiceWorkerMiddleware {
   }
 
   _onServiceWorkerMessage(event) {
-    this.log('received request for: %o', event.data);
+    this.logDetail('received request for: %o', event.data);
 
     if (event.data.type === 'addedResource') {
       this._onAddedResource(event.data.hash);
@@ -68,7 +68,7 @@ class ServiceWorkerMiddleware {
       this._onRemovedResource(event.data.hash);
     } else if (event.data.type === 'request') {
       const reply = response => {
-        this.log('have received something: %s', response);
+        this.logDetail('have received something: %s', response);
         event.ports[0].postMessage(response);
       };
       this._onRequest(event.data.hash, reply);
@@ -130,7 +130,7 @@ class ServiceWorkerMiddleware {
         }
       };
 
-      this.log('ask service worker for %o', msg);
+      this.logDetail('ask service worker for %o', msg);
       // Send message to service worker along with port for reply
       navigator.serviceWorker.controller.postMessage(msg, [msg_chan.port2]);
     });

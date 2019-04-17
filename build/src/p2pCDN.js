@@ -11,8 +11,8 @@ var ServiceWorkerMiddleware = function () {
     _classCallCheck(this, ServiceWorkerMiddleware);
 
     if (config.verbose) {
-      this.log = getLogger('openhpi:ServiceWorkerMiddleware');
-      this.log('setup');
+      this.log = getLogger('p2pCDN:ServiceWorkerMiddleware');
+      this.logDetail = getLogger('p2pCDN:ServiceWorkerMiddleware:detail');
     } else {
       this.log = function (message) {};
     }
@@ -74,7 +74,7 @@ var ServiceWorkerMiddleware = function () {
     value: function _onServiceWorkerMessage(event) {
       var _this2 = this;
 
-      this.log('received request for: %o', event.data);
+      this.logDetail('received request for: %o', event.data);
 
       if (event.data.type === 'addedResource') {
         this._onAddedResource(event.data.hash);
@@ -82,7 +82,7 @@ var ServiceWorkerMiddleware = function () {
         this._onRemovedResource(event.data.hash);
       } else if (event.data.type === 'request') {
         var reply = function reply(response) {
-          _this2.log('have received something: %s', response);
+          _this2.logDetail('have received something: %s', response);
           event.ports[0].postMessage(response);
         };
         this._onRequest(event.data.hash, reply);
@@ -152,7 +152,7 @@ var ServiceWorkerMiddleware = function () {
           }
         };
 
-        _this3.log('ask service worker for %o', msg);
+        _this3.logDetail('ask service worker for %o', msg);
         // Send message to service worker along with port for reply
         navigator.serviceWorker.controller.postMessage(msg, [msg_chan.port2]);
       });
@@ -174,8 +174,8 @@ var Signaling = function () {
     _classCallCheck(this, Signaling);
 
     if (config.verbose) {
-      this.log = getLogger('openhpi:client-signaling');
-      this.log('setup');
+      this.log = getLogger('p2pCDN:client-signaling');
+      this.logDetail = getLogger('p2pCDN:client-signaling:detail');
     } else {
       this.log = function (message) {};
     }
@@ -203,19 +203,19 @@ var Signaling = function () {
     value: function _onJoined(message) {
       var peerId = message.peerId;
 
-      this.log('client %s has been joined.', peerId);
+      this.log('client %s has joined.', peerId);
       document.dispatchEvent(new CustomEvent('peer:onNewConnection', { detail: peerId }));
     }
   }, {
     key: '_onMessage',
     value: function _onMessage(message) {
-      this.log('received message %o from %s', message.message, message.peerId);
+      this.logDetail('received message %o from %s', message.message, message.peerId);
       document.dispatchEvent(new CustomEvent('peer:onSignalingMessage', { detail: { message: message.message, peerId: message.peerId } }));
     }
   }, {
     key: 'send',
     value: function send(to, message) {
-      this.log('send message %o to client %s', message, to);
+      this.logDetail('send message %o to client %s', message, to);
       this.socket.sendTo('message', to, { peerId: this.peerId, message: message });
     }
   }]);
@@ -235,8 +235,8 @@ var Peer = function () {
     this.config = config;
 
     if (config.verbose) {
-      this.log = getLogger('openhpi:peer');
-      this.log('setup');
+      this.log = getLogger('p2pCDN:peer');
+      this.logDetail = getLogger('p2pCDN:peer:detail');
     } else {
       this.log = function (message) {};
     }
@@ -383,12 +383,12 @@ var Peer = function () {
     value: function _onLocalSessionCreated(peerId, desc) {
       var _this = this;
 
-      this.log('local session created: %o', desc);
+      this.logDetail('local session created: %o', desc);
 
       var peer = this._getPeer(peerId);
 
       peer.con.setLocalDescription(desc).then(function () {
-        _this.log('sending local desc: %o', peer.con.localDescription);
+        _this.logDetail('sending local desc: %o', peer.con.localDescription);
         _this.signaling.send(peer.id, peer.con.localDescription);
       });
     }
@@ -404,7 +404,7 @@ var Peer = function () {
 
       switch (state) {
         case 'connecting':
-          this.log('connection not open; queueing: %s', message);
+          this.logDetail('connection not open; queueing: %s', message);
           peer.requestQueue.push(message);
           break;
         case 'open':
@@ -418,10 +418,10 @@ var Peer = function () {
           }
           break;
         case 'closing':
-          this.log('attempted to send message while closing: %s', message);
+          this.logDetail('attempted to send message while closing: %s', message);
           break;
         case 'closed':
-          this.log('attempted to send while connection closed: %s', message);
+          this.logDetail('attempted to send while connection closed: %s', message);
           break;
       }
     }
@@ -449,7 +449,7 @@ var Peer = function () {
     value: function _requestPeer(peer, msgType, hash, cb) {
       var request = { from: peer.id, hash: hash, chunks: [], respond: cb };
 
-      this.log('send request to peer %s', peer.id);
+      this.log('Request resource %s from peer %s', hash, peer.id);
       this._sendToPeer(peer, msgType, hash);
       this.requests.push(request);
     }
@@ -477,7 +477,7 @@ var Peer = function () {
 
       // TODO: extract and write test
       var cb = function cb(cachedResources) {
-        _this2.log('cached resources %o', cachedResources);
+        _this2.logDetail('cached resources %o', cachedResources);
         if (cachedResources && cachedResources.length > 0) {
           _this2.peers.forEach(function (peer) {
             var alreadySent = _this2.cacheNotification.indexOf(peer.id) >= 0;
@@ -485,7 +485,7 @@ var Peer = function () {
             if (!alreadySent) {
               cachedResources.forEach(function (hash) {
                 if (peer.dataChannel) {
-                  _this2.log('update %s about cached resource %s', peer.id, hash);
+                  _this2.logDetail('update %s about cached resource %s', peer.id, hash);
                   _this2.cacheNotification.push(peer.id);
                   _this2._sendToPeer(peer, _this2.message.types.addedResource, hash);
                 }
@@ -561,11 +561,11 @@ var Peer = function () {
     value: function _handleUpdate(message, type) {
       var peer = this._getPeer(message.from);
       if (!peer) {
-        this.log('ERROR! Could not find peer!');
+        this.logDetail('Could not send update to peer');
         return;
       }
 
-      this.log('updated peer %s with resource %s', message.from, message.hash);
+      this.logDetail('updated peer %s with resource %s', message.from, message.hash);
       if (type == this.message.types.addedResource) {
         this._addResource(peer, message.hash);
         return;
@@ -589,6 +589,7 @@ var Peer = function () {
     key: '_handleResponse',
     value: function _handleResponse(message, responseAb) {
       var peer = this._getPeer(message.from);
+      this.log('Sending request %s to peer: %s', message.hash, message.from);
       if (responseAb.byteLength <= this.message.sizes.maxData) {
         this._sendToPeer(peer, this.message.types.response, message.hash, responseAb);
       } else {
@@ -616,13 +617,13 @@ var Peer = function () {
         this._removeRequest(message.from, message.hash);
         req.respond(message.data);
       } else {
-        this.log('error, could not find response!?');
+        this.logDetail('error, could not find response!?');
       }
     }
   }, {
     key: '_sendChunkedToPeer',
     value: function _sendChunkedToPeer(peer, hash, dataAb) {
-      this.log('have to chunk data %s', hash);
+      this.logDetail('have to chunk data %s', hash);
       var s = this.message.sizes;
       var dataSize = dataAb.byteLength;
       var chunkSize = s.maxData - (s.peerId + s.hash + s.type + s.chunkId + s.chunkCount);
@@ -664,12 +665,12 @@ var Peer = function () {
         this._sendToPeer(peer, this.message.types.chunk, hash, chunk);
         chunkId += 1;
       }
-      this.log('sent chunked data for %s', hash);
+      this.logDetail('sent chunked data for %s', hash);
     }
   }, {
     key: '_concatMessage',
     value: function _concatMessage(chunks) {
-      this.log('concat message');
+      this.logDetail('concat message');
 
       chunks.sort(function (a, b) {
         if (a.id < b.id) {
@@ -690,24 +691,24 @@ var Peer = function () {
     value: function _onDataChannelCreated(channel) {
       var _this4 = this;
 
-      this.log('onDataChannelCreated: %o', channel);
+      this.logDetail('onDataChannelCreated: %o', channel);
 
       channel.binaryType = 'arraybuffer';
 
       channel.onopen = function () {
-        _this4.log('data channel opened');
+        _this4.logDetail('data channel opened');
         _this4._checkCache();
       };
 
       channel.onclose = function () {
-        _this4.log('data channel closed');
+        _this4.logDetail('data channel closed');
       };
 
       channel.onmessage = function (event) {
         var message = _this4._abToMessage(event.data);
         var types = _this4.message.types;
 
-        _this4.log('decoded message %o', message);
+        _this4.logDetail('decoded message %o', message);
 
         // adapt for deletes
         switch (message.type) {
@@ -756,12 +757,12 @@ var Peer = function () {
 
       var isInitiator = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
 
-      this.log('creating connection as initiator? %s', isInitiator);
+      this.logDetail('creating connection as initiator? %s', isInitiator);
 
       var peer = this.addPeer(peerID);
 
       peer.con.onicecandidate = function (event) {
-        _this5.log('icecandidate event: %o', event);
+        _this5.logDetail('icecandidate event: %o', event);
 
         if (event.candidate) {
           _this5.signaling.send(peer.id, {
@@ -778,24 +779,24 @@ var Peer = function () {
       peer.con.oniceconnectionstatechange = function (event) {
         if (event.target.iceConnectionState == 'disconnected') {
           _this5.removePeer(peerID);
-          console.log('Disconnected');
+          console.logDetail('Disconnected');
         }
       };
 
       if (isInitiator) {
-        this.log('creating data channel');
+        this.logDetail('creating data channel');
 
         peer.dataChannel = peer.con.createDataChannel('data');
         this._onDataChannelCreated(peer.dataChannel);
 
-        this.log('creating an offer');
+        this.logDetail('creating an offer');
 
         peer.con.createOffer().then(function (desc) {
           _this5._onLocalSessionCreated(peer.id, desc);
         });
       } else {
         peer.con.ondatachannel = function (event) {
-          _this5.log('ondatachannel: %o', event.channel);
+          _this5.log('established connection to peer: %s', peer.id);
 
           peer.dataChannel = event.channel;
           _this5._onDataChannelCreated(peer.dataChannel);
@@ -820,18 +821,18 @@ var Peer = function () {
       }
 
       if (message.type === 'offer') {
-        this.log('Got offer %o. Sending answer to peer.', message);
+        this.logDetail('Got offer %o. Sending answer to peer.', message);
         peer.con.setRemoteDescription(message).then(function () {
           peer.con.createAnswer().then(function (desc) {
             _this6._onLocalSessionCreated(peer.id, desc);
           });
         });
       } else if (message.type === 'answer') {
-        this.log('Got answer. %o', message);
+        this.logDetail('Got answer. %o', message);
         peer.con.setRemoteDescription(message);
       } else if (message.type === 'candidate') {
         peer.con.addIceCandidate(message).then(function () {
-          _this6.log('Set addIceCandidate successfully %o', message);
+          _this6.logDetail('Set addIceCandidate successfully %o', message);
         }).catch(function (e) {
           return _this6.log('error: %o', e);
         });
@@ -852,7 +853,7 @@ var Peer = function () {
           var req = this.requests[i];
 
           if (req.from === peerId) {
-            this.log('remove pending request from %s', peerId);
+            this.logDetail('remove pending request from %s', peerId);
             this.requests.splice(i, 1);
           } else {
             i += 1;
@@ -869,7 +870,7 @@ var Peer = function () {
       var _this7 = this;
 
       if (this.peers.length > 0) {
-        this.log('broadcast peers for %s', hash);
+        this.logDetail('broadcast peers for %s', hash);
         this.peers.forEach(function (peer) {
           _this7._sendToPeer(peer, msgType, hash);
         });
@@ -878,13 +879,13 @@ var Peer = function () {
   }, {
     key: 'requestResourceFromPeers',
     value: function requestResourceFromPeers(hash, cb) {
-      this.log('try to find a peer for %s', hash);
+      this.log('try to find a peer for resource %s', hash);
       var peers = this.peers.filter(function (p) {
         return p.resources.indexOf(hash) >= 0;
       });
       var count = peers.length;
 
-      this.log('found %d peers', count);
+      this.logDetail('found %d peers', count);
 
       if (count > 0) {
         var randomPeerId = Math.floor(Math.random() * count);
@@ -969,7 +970,7 @@ var SystemTest = function () {
 
   return SystemTest;
 }();
-"use strict";
+'use strict';
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
@@ -983,6 +984,11 @@ var P2pCDN = function () {
     if (!config.clientId) return;
 
     var idLength = config.idLength;
+    if (config.logLevel === 'all') {
+      localStorage.debug = '*';
+    } else {
+      localStorage.debug = '*,-*:detail';
+    }
 
     // Fixed id size is needed for binary data transmission via datachannels
     var adjustCount = idLength - config.clientId.toString().length;
@@ -997,7 +1003,7 @@ var P2pCDN = function () {
   }
 
   _createClass(P2pCDN, [{
-    key: "systemTest",
+    key: 'systemTest',
     value: function systemTest() {
       return this.systemTest;
     }

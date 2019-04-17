@@ -3,8 +3,8 @@ class Signaling {
   constructor(config) {
 
     if(config.verbose) {
-      this.log = getLogger('openhpi:client-signaling');
-      this.log('setup');
+      this.log = getLogger('p2pCDN:client-signaling');
+      this.logDetail = getLogger('p2pCDN:client-signaling:detail');
     } else {
       this.log = function (message) { };
     }
@@ -28,14 +28,14 @@ class Signaling {
   _onJoined(message) {
     let peerId = message.peerId
 
-    this.log('client %s has been joined.', peerId);
+    this.log('client %s has joined.', peerId);
     document.dispatchEvent(
         new CustomEvent('peer:onNewConnection', {detail: peerId})
     );
   }
 
   _onMessage(message) {
-    this.log('received message %o from %s', message.message, message.peerId);
+    this.logDetail('received message %o from %s', message.message, message.peerId);
     document.dispatchEvent(
         new CustomEvent('peer:onSignalingMessage',
             { detail: { message: message.message, peerId: message.peerId } })
@@ -43,7 +43,7 @@ class Signaling {
   }
 
   send(to, message) {
-    this.log('send message %o to client %s', message, to);
+    this.logDetail('send message %o to client %s', message, to);
     this.socket.sendTo('message', to, {peerId: this.peerId, message: message});
   }
 
