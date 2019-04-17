@@ -8,7 +8,16 @@ var excludedUrls;
 let hasClientConnection = false;
 
 self.addEventListener('install', function(event) {
+  log("installing");
   event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener('activate', function(event) {
+  log("activating");
+  // hasClientConnection = false;
+  event.waitUntil(self.skipWaiting());
+  setConfig();
+  self.clients.claim(); // Become available to all pages
 });
 
 function log(message) {
@@ -29,14 +38,10 @@ function setConfig(){
         excludedUrls = config.excludedUrls.join('|');
       }
     }
-  });
+  }).catch(function(error) {
+    console.log(error);
+  });;
 }
-
-self.addEventListener('activate', function(event) {
-  // hasClientConnection = false;
-  event.waitUntil(self.skipWaiting());
-  self.clients.claim(); // Become available to all pages
-});
 
 function isClientReady(client){
   return new Promise(async function(resolve, reject) {
@@ -122,7 +127,7 @@ function getFromCache(key) {
 }
 
 async function getFromClient(clientId, hash) {
-  log('Try to resource from client: ', hash);
+  log('Try to get resource from client: %s', hash);
   // if(!hasClientConnection){
   //   console.log("client is not ready");
   //   return undefined;
@@ -258,7 +263,7 @@ self.addEventListener('fetch', function(event) {
   const request = event.request;
   const url = new URL(event.request.url);
 
-  log('received request: ' + url);
+  log('received request: %s', url);
 
   if (urlsToShare === "") {
     setConfig();
@@ -268,11 +273,11 @@ self.addEventListener('fetch', function(event) {
   if (!new RegExp(urlsToShare, 'gi').test(url.href)) return;
   if (excludedUrls && new RegExp(excludedUrls, 'gi').test(url.href)) return;
 
-  log('sw handles request: ' + url);
+  log('sw handles request: %s', url);
 
   if (!event.clientId) return;
 
-  log('fetch --> ', event.request.url);
+  log('fetch --> %s', event.request.url);
 
   event.respondWith(handleRequest(event.request.url, event.clientId));
 });

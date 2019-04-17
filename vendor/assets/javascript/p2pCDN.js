@@ -779,7 +779,7 @@ var Peer = function () {
       peer.con.oniceconnectionstatechange = function (event) {
         if (event.target.iceConnectionState == 'disconnected') {
           _this5.removePeer(peerID);
-          console.logDetail('Disconnected');
+          _this5.logDetail('Disconnected');
         }
       };
 

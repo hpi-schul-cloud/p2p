@@ -507,7 +507,7 @@ class Peer {
     peer.con.oniceconnectionstatechange = event => {
       if(event.target.iceConnectionState == 'disconnected') {
         this.removePeer(peerID);
-        console.logDetail('Disconnected');
+        this.logDetail('Disconnected');
       }
     }
 
