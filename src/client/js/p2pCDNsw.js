@@ -4,6 +4,9 @@ var config = {}
 var urlsToShare = "";
 var excludedUrls;
 let hasClientConnection = false;
+var requests = [];
+var serverSendTimeout;
+var sendStatisticDelay = 10000;
 
 self.addEventListener('install', function(event) {
   log("installing");
@@ -26,7 +29,8 @@ function log(message) {
 
 function setConfig(){
   idbKeyval.get('swConfig').then(function(wsConfig){
-    config = wsConfig;
+    config = wsConfig.serviceWorker;
+    config.clientId = wsConfig.clientId
 
     if(typeof(config) !== 'undefined'){
       if(typeof(config.urlsToShare) !== 'undefined') {
@@ -133,8 +137,12 @@ async function getFromClient(clientId, hash) {
   const msg = {type: 'request', hash};
   const message = await sendMessageToClient(msg, clientId);
 
-  if (message.data)
-    return new Response(message.data);
+  if (message.data && message.data.data)
+    return {
+      'peerId': message.data.peerId,
+      'from': message.data.from,
+      'response': new Response(message.data.data)
+    };
 
   return undefined;
 }
@@ -222,9 +230,47 @@ async function putIntoCache(key, response, clientId, iteration) {
   }
 }
 
+function logStatistic(url, method, request, timing, from, peerId) {
+  if(!config.statisticPath) return;
+  peerId = peerId ? peerId : config.clientId
+  data = {
+    'peerId': peerId,
+    'method': method,
+    'from': from,
+    'url': url,
+    'loadTime': timing
+  }
+  requests.push(data)
+  sendStatisticToServer();
+}
+
+function sendStatisticToServer() {
+  if(!serverSendTimeout && config.statisticPath){
+    serverSendTimeout = setTimeout(function(){
+      try {
+        fetch(config.statisticPath, {
+          method: 'POST',
+          body: JSON.stringify(requests),
+          headers:{
+            'Content-Type': 'application/json'
+          }
+        });
+      } catch(e) {
+
+      } finally {
+        serverSendTimeout = 0;
+        requests = [];
+      }
+    }, sendStatisticDelay)
+  }
+}
+
 function handleRequest(url, clientId) {
   return new Promise((resolve) => {
+    var startTime = performance.now();
+
     sha256(url).then(hash => {
+
       // check cache
       getFromCache(hash).then(cacheResponse => {
         if (cacheResponse && config.cachingEnabled) {
@@ -232,23 +278,37 @@ function handleRequest(url, clientId) {
 
           // This notify should not be needed
           notifyPeersAboutAdd(hash, clientId);
+          var endTime = performance.now();
+          logStatistic(url, 'cacheResponse', cacheResponse, endTime-startTime, 'cache');
           resolve(cacheResponse);
           return;
         }
         // check peers
-        getFromClient(clientId, hash).then(peerResponse => {
-          if (peerResponse) {
+        getFromClient(clientId, hash).then(data => {
+          if (data && data.response) {
+            var peerResponse = data.response;
             log('peerResponse ', peerResponse);
             putIntoCache(hash, peerResponse, clientId);
             notifyPeersAboutAdd(hash, clientId);
+            var endTime = performance.now();
+            logStatistic(
+              url,
+              'peerResponse',
+              peerResponse,
+              endTime-startTime,
+              data.from,
+              data.peerId
+            );
             resolve(peerResponse);
             return;
           }
           // get from the internet
           getFromInternet(url).then(response => {
-            log('internet response ', response);
+            log('serverResponse ', response);
             putIntoCache(hash, response, clientId);
             notifyPeersAboutAdd(hash, clientId);
+            var endTime = performance.now();
+            logStatistic(url, 'serverResponse', response, endTime-startTime, 'server');
             resolve(response);
           });
         });

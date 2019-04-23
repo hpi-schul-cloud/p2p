@@ -8,10 +8,10 @@ class ServiceWorkerMiddleware {
       this.log = function (message) {};
     }
 
-    this._initServiceWorker(config.serviceWorker);
+    this._initServiceWorker(config);
   }
 
-  _initServiceWorker(swConfig) {
+  _initServiceWorker(config) {
     const sw = navigator.serviceWorker || {};
 
     if(typeof(sw) === 'undefined' || typeof(idbKeyval) === 'undefined'){
@@ -19,12 +19,12 @@ class ServiceWorkerMiddleware {
       return false;
     }
 
-    idbKeyval.set('swConfig', swConfig).then(() => {
+    idbKeyval.set('swConfig', config).then(() => {
       window.addEventListener('load', () => {
         if (sw.controller) {
           this.log('serviceWorker already registered');
         } else {
-          sw.register(swConfig.path, {scope: swConfig.scope}).then(registration => {
+          sw.register(config.serviceWorker.path, {scope: config.serviceWorker.scope}).then(registration => {
             this.log('registration successful, scope: %s', registration.scope);
           }, err => {
             this.log('registration failed: %s', err);

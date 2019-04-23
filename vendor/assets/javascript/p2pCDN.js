@@ -17,12 +17,12 @@ var ServiceWorkerMiddleware = function () {
       this.log = function (message) {};
     }
 
-    this._initServiceWorker(config.serviceWorker);
+    this._initServiceWorker(config);
   }
 
   _createClass(ServiceWorkerMiddleware, [{
     key: '_initServiceWorker',
-    value: function _initServiceWorker(swConfig) {
+    value: function _initServiceWorker(config) {
       var _this = this;
 
       var sw = navigator.serviceWorker || {};
@@ -32,12 +32,12 @@ var ServiceWorkerMiddleware = function () {
         return false;
       }
 
-      idbKeyval.set('swConfig', swConfig).then(function () {
+      idbKeyval.set('swConfig', config).then(function () {
         window.addEventListener('load', function () {
           if (sw.controller) {
             _this.log('serviceWorker already registered');
           } else {
-            sw.register(swConfig.path, { scope: swConfig.scope }).then(function (registration) {
+            sw.register(config.serviceWorker.path, { scope: config.serviceWorker.scope }).then(function (registration) {
               _this.log('registration successful, scope: %s', registration.scope);
             }, function (err) {
               _this.log('registration failed: %s', err);
@@ -600,12 +600,15 @@ var Peer = function () {
     key: '_handleChunk',
     value: function _handleChunk(message) {
       var req = this._getRequest(message.from, message.hash);
-
+      var response = {};
       req.chunks.push({ id: message.chunkId, data: message.data });
 
       if (req.chunks.length === message.chunkCount) {
+        response.data = this._concatMessage(req.chunks);
+        response.from = message.from;
+        response.peerId = this.peerId;
         this._removeRequest(message.from, message.hash);
-        req.respond(this._concatMessage(req.chunks));
+        req.respond(response);
       }
     }
   }, {
@@ -615,7 +618,9 @@ var Peer = function () {
 
       if (req) {
         this._removeRequest(message.from, message.hash);
-        req.respond(message.data);
+        // req.respond(message.data);
+        message.peerId = this.peerId;
+        req.respond(message);
       } else {
         this.logDetail('error, could not find response!?');
       }
