@@ -15,6 +15,7 @@ var ServiceWorkerMiddleware = function () {
       this.logDetail = getLogger('p2pCDN:ServiceWorkerMiddleware:detail');
     } else {
       this.log = function (message) {};
+      this.logDetail = function (_) {};
     }
 
     this._initServiceWorker(config);
@@ -178,6 +179,7 @@ var Signaling = function () {
       this.logDetail = getLogger('p2pCDN:client-signaling:detail');
     } else {
       this.log = function (message) {};
+      this.logDetail = function (_) {};
     }
 
     this.channel = config.channel;
@@ -239,6 +241,7 @@ var Peer = function () {
       this.logDetail = getLogger('p2pCDN:peer:detail');
     } else {
       this.log = function (message) {};
+      this.logDetail = function (_) {};
     }
 
     this.signaling = new Signaling(config);

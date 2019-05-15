@@ -6,6 +6,7 @@ class ServiceWorkerMiddleware {
       this.logDetail = getLogger('p2pCDN:ServiceWorkerMiddleware:detail');
     } else {
       this.log = function (message) {};
+      this.logDetail = function (_) {};
     }
 
     this._initServiceWorker(config);

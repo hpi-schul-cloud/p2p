@@ -8,6 +8,7 @@ class Peer {
       this.logDetail = getLogger('p2pCDN:peer:detail');
     } else {
       this.log = function(message) {}
+      this.logDetail = function (_) {}
     }
 
     this.signaling = new Signaling(config);

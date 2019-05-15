@@ -328,6 +328,8 @@ self.addEventListener('fetch', function(event) {
     return;
   }
 
+  if (request.method !== 'GET') return;
+
   if (!new RegExp(urlsToShare, 'gi').test(url.href)) return;
   if (excludedUrls && new RegExp(excludedUrls, 'gi').test(url.href)) return;
 

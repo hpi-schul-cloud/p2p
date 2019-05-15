@@ -7,6 +7,7 @@ class Signaling {
       this.logDetail = getLogger('p2pCDN:client-signaling:detail');
     } else {
       this.log = function (message) { };
+      this.logDetail = function (_) {}
     }
 
     this.channel = config.channel;
