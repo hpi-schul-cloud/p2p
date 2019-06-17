@@ -21,7 +21,7 @@ class ServiceWorkerMiddleware {
     }
 
     idbKeyval.set('swConfig', config).then(() => {
-      window.addEventListener('load', () => {
+      // window.addEventListener('load', () => {
         if (sw.controller) {
           this.log('serviceWorker already registered');
         } else {
@@ -31,7 +31,7 @@ class ServiceWorkerMiddleware {
             this.log('registration failed: %s', err);
           });
         }
-      });
+      // });
     });
     this._initListeners();
   }
