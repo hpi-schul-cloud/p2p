@@ -22,7 +22,7 @@ class Signaling {
   }
 
   _getChannel(channel) {
-    return this.mesh + channel
+    return this.mesh + '/' + channel
   }
 
   _dispatcher() {

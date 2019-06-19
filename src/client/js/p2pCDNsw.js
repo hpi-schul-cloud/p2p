@@ -22,7 +22,7 @@ self.addEventListener('activate', function(event) {
 });
 
 function log(message) {
-  if(this.config.verbose){
+  if(this.config.verbose && typeof(console) !== 'undefined'){
     console.log("Service Worker: %s", message)
   }
 }
@@ -87,7 +87,6 @@ function sendMessageToClient(msg, clientID) {
     // Handler for receiving message reply from service worker
     msg_chan.port1.onmessage = function(event) {
       receivedResponse = true;
-      log('received message from client ', event.data);
       resolve(event);
     };
 
@@ -129,7 +128,7 @@ function getFromCache(key) {
 }
 
 async function getFromClient(clientId, hash) {
-  log('Try to get resource from client: %s', hash);
+  log('Try to get resource from client: ' + hash);
   // if(!hasClientConnection){
   //   console.log("client is not ready");
   //   return undefined;
@@ -197,7 +196,7 @@ async function freeStorage(clientId){
           const urlArray = keys[0].url.split("/");
           const hash = urlArray[urlArray.length-1];
           notifyPeersAboutRemove(hash, clientId)
-          log("Removed " + keys[0] + "from the cache")
+          log("Removed " + hash + "from the cache")
         } else{
           resolve();
         }
@@ -274,7 +273,7 @@ function handleRequest(url, clientId) {
       // check cache
       getFromCache(hash).then(cacheResponse => {
         if (cacheResponse && config.cachingEnabled) {
-          log('cacheResponse ', cacheResponse);
+          log('cacheResponse ' + cacheResponse.url);
 
           // This notify should not be needed
           notifyPeersAboutAdd(hash, clientId);
@@ -287,7 +286,7 @@ function handleRequest(url, clientId) {
         getFromClient(clientId, hash).then(data => {
           if (data && data.response) {
             var peerResponse = data.response;
-            log('peerResponse ', peerResponse);
+            log('peerResponse ' + peerResponse.url);
             putIntoCache(hash, peerResponse, clientId);
             notifyPeersAboutAdd(hash, clientId);
             var endTime = performance.now();
@@ -304,7 +303,7 @@ function handleRequest(url, clientId) {
           }
           // get from the internet
           getFromInternet(url).then(response => {
-            log('serverResponse ', response);
+            log('serverResponse ' + response.url);
             putIntoCache(hash, response, clientId);
             notifyPeersAboutAdd(hash, clientId);
             var endTime = performance.now();
@@ -321,8 +320,6 @@ self.addEventListener('fetch', function(event) {
   const request = event.request;
   const url = new URL(event.request.url);
 
-  log('received request: %s', url);
-
   if (urlsToShare === "") {
     setConfig();
     return;
@@ -333,11 +330,9 @@ self.addEventListener('fetch', function(event) {
   if (!new RegExp(urlsToShare, 'gi').test(url.href)) return;
   if (excludedUrls && new RegExp(excludedUrls, 'gi').test(url.href)) return;
 
-  log('sw handles request: %s', url);
+  log('Sw handles request: ' + url.href);
 
   if (!event.clientId) return;
-
-  log('fetch --> %s', event.request.url);
 
   event.respondWith(handleRequest(event.request.url, event.clientId));
 });
@@ -351,9 +346,9 @@ self.addEventListener('message', function(event) {
     });
   } else if (msg.type === 'resource') {
     getFromCache(msg.resource).then(cacheResponse => {
-      log('cached object ', cacheResponse);
+      log('cached object ' + cacheResponse);
       cacheResponse.arrayBuffer().then(buffer => {
-        log('got buffer ', buffer);
+        log('got buffer ' + buffer);
         event.ports[0].postMessage(buffer, [buffer]);
       });
     });

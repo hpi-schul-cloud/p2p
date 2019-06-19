@@ -197,7 +197,7 @@ var Signaling = function () {
   }, {
     key: '_getChannel',
     value: function _getChannel(channel) {
-      return this.mesh + channel;
+      return this.mesh + '/' + channel;
     }
   }, {
     key: '_dispatcher',
