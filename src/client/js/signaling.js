@@ -10,7 +10,7 @@ class Signaling {
       this.logDetail = function (_) {}
     }
 
-    this.channel = config.channel;
+    this.mesh = config.channel;
     this.peerId = config.clientId
     this.socket = new FayeConnection();
     this._dispatcher();
@@ -18,12 +18,16 @@ class Signaling {
   }
 
   join() {
-    this.socket.send('joined', { peerId: this.peerId});
+    this.socket.send(this._getChannel('joined'), { peerId: this.peerId});
+  }
+
+  _getChannel(channel) {
+    return this.mesh + channel
   }
 
   _dispatcher() {
-    this.socket.on('joined', this._onJoined.bind(this));
-    this.socket.on('message/' + this.peerId, this._onMessage.bind(this));
+    this.socket.on(this._getChannel('joined'), this._onJoined.bind(this));
+    this.socket.on(this._getChannel('message/' + this.peerId), this._onMessage.bind(this));
   }
 
   _onJoined(message) {
@@ -45,7 +49,7 @@ class Signaling {
 
   send(to, message) {
     this.logDetail('send message %o to client %s', message, to);
-    this.socket.sendTo('message', to, {peerId: this.peerId, message: message});
+    this.socket.sendTo(this._getChannel('message'), to, {peerId: this.peerId, message: message});
   }
 
 }

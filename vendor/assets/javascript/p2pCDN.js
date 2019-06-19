@@ -182,7 +182,7 @@ var Signaling = function () {
       this.logDetail = function (_) {};
     }
 
-    this.channel = config.channel;
+    this.mesh = config.channel;
     this.peerId = config.clientId;
     this.socket = new FayeConnection();
     this._dispatcher();
@@ -192,13 +192,18 @@ var Signaling = function () {
   _createClass(Signaling, [{
     key: 'join',
     value: function join() {
-      this.socket.send('joined', { peerId: this.peerId });
+      this.socket.send(this._getChannel('joined'), { peerId: this.peerId });
+    }
+  }, {
+    key: '_getChannel',
+    value: function _getChannel(channel) {
+      return this.mesh + channel;
     }
   }, {
     key: '_dispatcher',
     value: function _dispatcher() {
-      this.socket.on('joined', this._onJoined.bind(this));
-      this.socket.on('message/' + this.peerId, this._onMessage.bind(this));
+      this.socket.on(this._getChannel('joined'), this._onJoined.bind(this));
+      this.socket.on(this._getChannel('message/' + this.peerId), this._onMessage.bind(this));
     }
   }, {
     key: '_onJoined',
@@ -218,7 +223,7 @@ var Signaling = function () {
     key: 'send',
     value: function send(to, message) {
       this.logDetail('send message %o to client %s', message, to);
-      this.socket.sendTo('message', to, { peerId: this.peerId, message: message });
+      this.socket.sendTo(this._getChannel('message'), to, { peerId: this.peerId, message: message });
     }
   }]);
 
