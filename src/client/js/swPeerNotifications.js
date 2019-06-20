@@ -1,7 +1,7 @@
 
 async function notifyPeers(hash, clientID, type) {
-  const msg = {type: type, hash};
-  const client = await clients.get(clientID);
+  var msg = {type: type, hash};
+  var client = await clients.get(clientID);
 
   if(!client) return;
 

@@ -3,7 +3,7 @@ const version = '1.2.3';
 var config = {}
 var urlsToShare = "";
 var excludedUrls;
-let hasClientConnection = false;
+var hasClientConnection = false;
 var requests = [];
 var serverSendTimeout;
 var sendStatisticDelay = 10000;
@@ -50,7 +50,7 @@ function isClientReady(client){
     const msg_chan = new MessageChannel();
     const timeout = 200;
     const msg = { type: 'heartbeat' }
-    let receivedResponse = false;
+    var receivedResponse = false;
 
     msg_chan.port1.onmessage = function(event) {
       receivedResponse = true;
@@ -82,7 +82,7 @@ function sendMessageToClient(msg, clientID) {
 
     const msg_chan = new MessageChannel();
     const timeout = 2000;
-    let receivedResponse = false;
+    var receivedResponse = false;
 
     // Handler for receiving message reply from service worker
     msg_chan.port1.onmessage = function(event) {
@@ -110,7 +110,7 @@ function getCacheKeys() {
   return caches.open(version).then(cache => {
     return cache.keys().then(keys => {
       keys.forEach(key => {
-        let url = key.url;
+        var url = key.url;
         result.push(url.substr(url.lastIndexOf('/') + 1));
       });
 
