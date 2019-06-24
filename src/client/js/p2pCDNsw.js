@@ -231,9 +231,9 @@ async function putIntoCache(key, response, clientId, iteration) {
 
 function logStatistic(url, method, request, timing, from, peerId) {
   if(!config.statisticPath) return;
-  peerId = peerId ? peerId : config.clientId
-  data = {
-    'peerId': peerId,
+  p_Id = peerId ? peerId : config.clientId
+  var data = {
+    'peerId': p_Id,
     'method': method,
     'from': from,
     'url': url,
