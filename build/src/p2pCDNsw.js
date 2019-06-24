@@ -105,7 +105,7 @@ self.addEventListener('activate', function(event) {
 });
 
 function log(message) {
-  if(this.config && this.config.verbose && typeof(console) !== 'undefined'){
+  if(this && this.config && this.config.verbose && typeof(console) !== 'undefined'){
     console.log("Service Worker: %s", message)
   }
 }
