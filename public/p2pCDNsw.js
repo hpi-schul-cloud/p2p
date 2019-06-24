@@ -105,7 +105,7 @@ self.addEventListener('activate', function(event) {
 });
 
 function log(message) {
-  if(this && this.config && this.config.verbose && typeof(console) !== 'undefined'){
+  if(config && config.verbose && typeof(console) !== 'undefined'){
     console.log("Service Worker: %s", message)
   }
 }
@@ -314,7 +314,7 @@ async function putIntoCache(key, response, clientId, iteration) {
 
 function logStatistic(url, method, request, timing, from, peerId) {
   if(!config.statisticPath) return;
-  p_Id = peerId ? peerId : config.clientId
+  var p_Id = peerId ? peerId : config.clientId
   var data = {
     'peerId': p_Id,
     'method': method,
