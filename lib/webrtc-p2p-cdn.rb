@@ -5,7 +5,7 @@ module WebrtcP2pCdn
     class Engine < ::Rails::Engine
 
       initializer "static assets" do |app|
-        app.middleware.insert_before(::ActionDispatch::Static, ::ActionDispatch::Static, "#{root}/public")
+        app.middleware.insert_after(::Rack::Runtime, ::ActionDispatch::Static, "#{root}/public")
       end
     end
   end
