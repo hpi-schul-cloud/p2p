@@ -680,18 +680,37 @@ var Peer = function () {
     key: '_sendViaDataChannel',
     value: function _sendViaDataChannel(peer, message) {
       var state = this._getStateFor(peer);
-
+      var send = function send(msg) {
+        try {
+          // maximum buffer size is 16mb
+          if (peer.dataChannel.bufferedAmount <= 16000000) {
+            peer.dataChannel.send(msg);
+            return;
+          }
+          // if maximum buffersize is reached delay sending of chunks
+          peer.requestQueue.push(msg);
+          peer.dataChannel.bufferedAmountLowThreshold = 65536;
+          peer.dataChannel.onbufferedamountlow = function () {
+            var reqs = peer.requestQueue.slice();
+            peer.requestQueue = [];
+            reqs.forEach(function (_msg) {
+              return send(_msg);
+            });
+          };
+        } catch (error) {
+          this.log(error);
+        }
+      };
       switch (state) {
         case 'connecting':
           this.logDetail('connection not open; queueing: %s', message);
           peer.requestQueue.push(message);
           break;
         case 'open':
-          if (peer.requestQueue.length === 0) {
-            peer.dataChannel.send(message);
-          } else {
+          send(message);
+          if (peer.requestQueue.size >= 1) {
             peer.requestQueue.forEach(function (msg) {
-              return peer.dataChannel.send(msg);
+              return send(msg);
             });
             peer.requestQueue = [];
           }
@@ -726,11 +745,17 @@ var Peer = function () {
   }, {
     key: '_requestPeer',
     value: function _requestPeer(peer, msgType, hash, cb) {
+      var _this2 = this;
+
       var request = { from: peer.id, hash: hash, chunks: [], respond: cb };
 
       this.log('Request resource %s from peer %s', hash, peer.id);
       this._sendToPeer(peer, msgType, hash);
       this.requests.push(request);
+      // remove request after timeout to prevent dangling requests
+      setTimeout(function () {
+        _this2._removeRequest(peer.id, hash);
+      }, 20000);
     }
   }, {
     key: '_addResource',
@@ -752,21 +777,21 @@ var Peer = function () {
   }, {
     key: '_checkCache',
     value: function _checkCache() {
-      var _this2 = this;
+      var _this3 = this;
 
       // TODO: extract and write test
       var cb = function cb(cachedResources) {
-        _this2.logDetail('cached resources %o', cachedResources);
+        _this3.logDetail('cached resources %o', cachedResources);
         if (cachedResources && cachedResources.length > 0) {
-          _this2.peers.forEach(function (peer) {
-            var alreadySent = _this2.cacheNotification.indexOf(peer.id) >= 0;
+          _this3.peers.forEach(function (peer) {
+            var alreadySent = _this3.cacheNotification.indexOf(peer.id) >= 0;
 
             if (!alreadySent) {
               cachedResources.forEach(function (hash) {
                 if (peer.dataChannel) {
-                  _this2.logDetail('update %s about cached resource %s', peer.id, hash);
-                  _this2.cacheNotification.push(peer.id);
-                  _this2._sendToPeer(peer, _this2.message.types.addedResource, hash);
+                  _this3.logDetail('update %s about cached resource %s', peer.id, hash);
+                  _this3.cacheNotification.push(peer.id);
+                  _this3._sendToPeer(peer, _this3.message.types.addedResource, hash);
                 }
               });
             }
@@ -854,10 +879,10 @@ var Peer = function () {
   }, {
     key: '_handleRequest',
     value: function _handleRequest(message) {
-      var _this3 = this;
+      var _this4 = this;
 
       var cb = function cb(response) {
-        _this3._handleResponse(message, response);
+        _this4._handleResponse(message, response);
       };
 
       document.dispatchEvent(new CustomEvent('sw:onRequestResource', { detail: {
@@ -878,6 +903,7 @@ var Peer = function () {
   }, {
     key: '_handleChunk',
     value: function _handleChunk(message) {
+      // this code leads to problems when a peer requests the same resource from the same peer at the same time
       var req = this._getRequest(message.from, message.hash);
       var response = {};
       req.chunks.push({ id: message.chunkId, data: message.data });
@@ -897,7 +923,6 @@ var Peer = function () {
 
       if (req) {
         this._removeRequest(message.from, message.hash);
-        // req.respond(message.data);
         message.peerId = this.peerId;
         req.respond(message);
       } else {
@@ -945,7 +970,6 @@ var Peer = function () {
         var id = applyPadding(chunkId, s.chunkId);
         var count = applyPadding(chunkCount, s.chunkCount);
         var chunk = buildChunk(id, count, chunkAb);
-
         this._sendToPeer(peer, this.message.types.chunk, hash, chunk);
         chunkId += 1;
       }
@@ -973,44 +997,48 @@ var Peer = function () {
   }, {
     key: '_onDataChannelCreated',
     value: function _onDataChannelCreated(channel) {
-      var _this4 = this;
+      var _this5 = this;
 
       this.logDetail('onDataChannelCreated: %o', channel);
 
       channel.binaryType = 'arraybuffer';
 
       channel.onopen = function () {
-        _this4.logDetail('data channel opened');
-        _this4._checkCache();
+        _this5.logDetail('data channel opened');
+        _this5._checkCache();
       };
 
       channel.onclose = function () {
-        _this4.logDetail('data channel closed');
+        _this5.logDetail('data channel closed');
       };
 
-      channel.onmessage = function (event) {
-        var message = _this4._abToMessage(event.data);
-        var types = _this4.message.types;
+      // channel.onbufferedamountlow = event => {
+      //   console.log('HOLY');
+      // }
 
-        _this4.logDetail('decoded message %o', message);
+      channel.onmessage = function (event) {
+        var message = _this5._abToMessage(event.data);
+        var types = _this5.message.types;
+
+        _this5.logDetail('decoded message %o', message);
 
         // adapt for deletes
         switch (message.type) {
           case types.update:
-            _this4._handleUpdate(message);
+            _this5._handleUpdate(message);
             break;
           case types.addedResource:
           case types.removedResource:
-            _this4._handleUpdate(message, message.type);
+            _this5._handleUpdate(message, message.type);
             break;
           case types.request:
-            _this4._handleRequest(message);
+            _this5._handleRequest(message);
             break;
           case types.chunk:
-            _this4._handleChunk(message);
+            _this5._handleChunk(message);
             break;
           case types.response:
-            _this4._handleAnswer(message);
+            _this5._handleAnswer(message);
             break;
         }
       };
@@ -1037,19 +1065,20 @@ var Peer = function () {
   }, {
     key: 'connectTo',
     value: function connectTo(peerID) {
-      var _this5 = this;
+      var _this6 = this;
 
       var isInitiator = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
 
       this.logDetail('creating connection as initiator? %s', isInitiator);
+      var startTime = performance.now();
 
       var peer = this.addPeer(peerID);
 
       peer.con.onicecandidate = function (event) {
-        _this5.logDetail('icecandidate event: %o', event);
+        _this6.logDetail('icecandidate event: %o', event);
 
         if (event.candidate) {
-          _this5.signaling.send(peer.id, {
+          _this6.signaling.send(peer.id, {
             type: 'candidate',
             label: event.candidate.sdpMLineIndex,
             id: event.candidate.sdpMid,
@@ -1062,8 +1091,8 @@ var Peer = function () {
 
       peer.con.oniceconnectionstatechange = function (event) {
         if (event.target.iceConnectionState == 'disconnected') {
-          _this5.removePeer(peerID);
-          _this5.logDetail('Disconnected');
+          _this6.removePeer(peerID);
+          _this6.logDetail('Disconnected');
         }
       };
 
@@ -1076,21 +1105,24 @@ var Peer = function () {
         this.logDetail('creating an offer');
 
         peer.con.createOffer().then(function (desc) {
-          _this5._onLocalSessionCreated(peer.id, desc);
+          _this6._onLocalSessionCreated(peer.id, desc);
         });
       } else {
         peer.con.ondatachannel = function (event) {
-          _this5.log('established connection to peer: %s', peer.id);
+          _this6.log('established connection to peer: %s', peer.id);
 
           peer.dataChannel = event.channel;
-          _this5._onDataChannelCreated(peer.dataChannel);
+          _this6._onDataChannelCreated(peer.dataChannel);
+          var endTime = performance.now();
+          console.log('-----------------------------------------');
+          console.log("Timing to Connect: " + endTime - startTime);
         };
       }
     }
   }, {
     key: 'receiveSignalMessage',
     value: function receiveSignalMessage(peerId, message) {
-      var _this6 = this;
+      var _this7 = this;
 
       //Todo: ensure that this never happens
       if (!peerId || peerId === this.peerId) {
@@ -1108,7 +1140,7 @@ var Peer = function () {
         this.logDetail('Got offer %o. Sending answer to peer.', message);
         peer.con.setRemoteDescription(message).then(function () {
           peer.con.createAnswer().then(function (desc) {
-            _this6._onLocalSessionCreated(peer.id, desc);
+            _this7._onLocalSessionCreated(peer.id, desc);
           });
         });
       } else if (message.type === 'answer') {
@@ -1116,9 +1148,9 @@ var Peer = function () {
         peer.con.setRemoteDescription(message);
       } else if (message.type === 'candidate') {
         peer.con.addIceCandidate(message).then(function () {
-          _this6.logDetail('Set addIceCandidate successfully %o', message);
+          _this7.logDetail('Set addIceCandidate successfully %o', message);
         }).catch(function (e) {
-          return _this6.log('error: %o', e);
+          return _this7.log('error: %o', e);
         });
       }
     }
@@ -1151,12 +1183,12 @@ var Peer = function () {
   }, {
     key: 'updatePeers',
     value: function updatePeers(hash, msgType) {
-      var _this7 = this;
+      var _this8 = this;
 
       if (this.peers.length > 0) {
         this.logDetail('broadcast peers for %s', hash);
         this.peers.forEach(function (peer) {
-          _this7._sendToPeer(peer, msgType, hash);
+          _this8._sendToPeer(peer, msgType, hash);
         });
       }
     }

@@ -81,7 +81,7 @@ function sendMessageToClient(msg, clientID) {
     }
 
     const msg_chan = new MessageChannel();
-    const timeout = 2000;
+    const timeout = 200000;
     var receivedResponse = false;
 
     // Handler for receiving message reply from service worker

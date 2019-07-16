@@ -159,17 +159,34 @@ class Peer {
 
   _sendViaDataChannel(peer, message) {
     const state = this._getStateFor(peer);
-
+    var send = function(msg) {
+      try{
+        // maximum buffer size is 16mb
+        if(peer.dataChannel.bufferedAmount <= 16000000) {
+          peer.dataChannel.send(msg);
+          return;
+        }
+        // if maximum buffersize is reached delay sending of chunks
+        peer.requestQueue.push(msg);
+        peer.dataChannel.bufferedAmountLowThreshold = 65536;
+        peer.dataChannel.onbufferedamountlow = function () {
+          var reqs = peer.requestQueue.slice();
+          peer.requestQueue = [];
+          reqs.forEach(_msg => send(_msg));
+        }
+      } catch(error) {
+        this.log(error)
+      }
+    }
     switch (state) {
       case 'connecting':
         this.logDetail('connection not open; queueing: %s', message);
         peer.requestQueue.push(message);
         break;
       case 'open':
-        if (peer.requestQueue.length === 0) {
-          peer.dataChannel.send(message);
-        } else {
-          peer.requestQueue.forEach(msg => peer.dataChannel.send(msg));
+        send(message);
+        if(peer.requestQueue.size >= 1) {
+          peer.requestQueue.forEach(msg => send(msg));
           peer.requestQueue = [];
         }
         break;
@@ -204,6 +221,10 @@ class Peer {
     this.log('Request resource %s from peer %s', hash, peer.id);
     this._sendToPeer(peer, msgType, hash);
     this.requests.push(request);
+    // remove request after timeout to prevent dangling requests
+    setTimeout(() => {
+      this._removeRequest(peer.id, hash);
+    }, 20000)
   }
 
   _addResource(peer, resource) {
@@ -342,6 +363,7 @@ class Peer {
   }
 
   _handleChunk(message) {
+    // this code leads to problems when a peer requests the same resource from the same peer at the same time
     const req = this._getRequest(message.from, message.hash);
     var response = {}
     req.chunks.push({id: message.chunkId, data: message.data});
@@ -360,7 +382,6 @@ class Peer {
 
     if (req) {
       this._removeRequest(message.from, message.hash);
-      // req.respond(message.data);
       message.peerId = this.peerId
       req.respond(message)
     } else {
@@ -407,7 +428,6 @@ class Peer {
       const id = applyPadding(chunkId, s.chunkId);
       const count = applyPadding(chunkCount, s.chunkCount);
       const chunk = buildChunk(id, count, chunkAb);
-
       this._sendToPeer(peer, this.message.types.chunk, hash, chunk);
       chunkId += 1;
     }
@@ -535,6 +555,7 @@ class Peer {
 
         peer.dataChannel = event.channel;
         this._onDataChannelCreated(peer.dataChannel);
+        var endTime = performance.now();
       };
     }
   }
