@@ -74,6 +74,11 @@ function isClientReady(client){
 function sendMessageToClient(msg, clientID) {
   return new Promise(async function(resolve, reject) {
     const client = await clients.get(clientID);
+    var timeout = 1000;
+    if(typeof (config.fetchTimeout) !== 'undefined') {
+      timeout = Number(config.fetchTimeout);
+    }
+
     const clientReady = await isClientReady(client);
     if (typeof client === 'undefined' || !clientReady){
       resolve(false);
@@ -81,7 +86,7 @@ function sendMessageToClient(msg, clientID) {
     }
 
     const msg_chan = new MessageChannel();
-    const timeout = 200000;
+
     var receivedResponse = false;
 
     // Handler for receiving message reply from service worker
@@ -346,6 +351,7 @@ self.addEventListener('message', function(event) {
     });
   } else if (msg.type === 'resource') {
     getFromCache(msg.resource).then(cacheResponse => {
+      if (typeof(cacheResponse) === undefined) return
       log('cached object ' + cacheResponse);
       cacheResponse.arrayBuffer().then(buffer => {
         log('got buffer ' + buffer);

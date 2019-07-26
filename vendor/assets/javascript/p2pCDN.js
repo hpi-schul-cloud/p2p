@@ -1012,10 +1012,6 @@ var Peer = function () {
         _this5.logDetail('data channel closed');
       };
 
-      // channel.onbufferedamountlow = event => {
-      //   console.log('HOLY');
-      // }
-
       channel.onmessage = function (event) {
         var message = _this5._abToMessage(event.data);
         var types = _this5.message.types;
@@ -1070,7 +1066,6 @@ var Peer = function () {
       var isInitiator = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : true;
 
       this.logDetail('creating connection as initiator? %s', isInitiator);
-      var startTime = performance.now();
 
       var peer = this.addPeer(peerID);
 
@@ -1114,8 +1109,6 @@ var Peer = function () {
           peer.dataChannel = event.channel;
           _this6._onDataChannelCreated(peer.dataChannel);
           var endTime = performance.now();
-          console.log('-----------------------------------------');
-          console.log("Timing to Connect: " + endTime - startTime);
         };
       }
     }
