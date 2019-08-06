@@ -1286,11 +1286,13 @@ var _createClass = function () { function defineProperties(target, props) { for 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var P2pCDN = function () {
-  // TOdo apply to peer
   function P2pCDN(config) {
     _classCallCheck(this, P2pCDN);
 
     if (!config.clientId) return;
+    this.systemTest = new SystemTest(this);
+
+    if (this.systemTest.testBrowser()) return;
 
     var idLength = config.idLength;
     if (config.logLevel === 'all') {
@@ -1307,7 +1309,6 @@ var P2pCDN = function () {
       config.clientId = "0".repeat(adjustCount) + config.clientId;
     }
 
-    this.systemTest = new SystemTest(this);
     this.peer = new Peer(config);
   }
 

@@ -1,7 +1,9 @@
 class P2pCDN {
-  // TOdo apply to peer
   constructor(config) {
     if(!config.clientId) return;
+    this.systemTest = new SystemTest(this);
+
+    if(this.systemTest.testBrowser()) return;
 
     const idLength = config.idLength;
     if(config.logLevel === 'all') {
@@ -18,7 +20,7 @@ class P2pCDN {
       config.clientId = "0".repeat(adjustCount) + config.clientId;
     }
 
-    this.systemTest = new SystemTest(this);
+
     this.peer = new Peer(config);
   }
 
