@@ -13,8 +13,12 @@ class Peer {
 
     this.signaling = new Signaling(config);
     this.serviceWorker = new ServiceWorkerMiddleware(config);
-
-    this.stunServer = config.stunServer;
+    this.stunServer = { iceServers: [] }
+    if(config.stunServer &&
+      config.stunServer.iceServers.length !== 0 &&
+      config.stunServer.iceServers[0].urls !== '') {
+      this.stunServer = config.stunServer;
+    }
     this.peerId = this.config.clientId;
     this.peers = [];
     this.requests = [];

@@ -299,7 +299,7 @@ var ServiceWorkerMiddleware = function () {
     value: function _initServiceWorker(config) {
       var _this = this;
 
-      var sw = navigator.serviceWorker || {};
+      var sw = navigator.serviceWorker;
 
       if (typeof sw === 'undefined' || typeof idbKeyval === 'undefined') {
         this.log("Failed to register service worker");
@@ -398,6 +398,9 @@ var ServiceWorkerMiddleware = function () {
   }, {
     key: '_initListeners',
     value: function _initListeners() {
+      if (typeof navigator.serviceWorker === 'undefined') {
+        return;
+      }
       navigator.serviceWorker.addEventListener('message', this._onServiceWorkerMessage.bind(this));
 
       document.addEventListener('sw:clientReady', this._onClientReady.bind(this));
@@ -412,7 +415,7 @@ var ServiceWorkerMiddleware = function () {
       var _this3 = this;
 
       return new Promise(function (resolve, reject) {
-        if (!navigator.serviceWorker.controller) {
+        if (!navigator.serviceWorker || !navigator.serviceWorker.controller) {
           resolve(undefined);
           return;
         }
@@ -522,8 +525,10 @@ var Peer = function () {
 
     this.signaling = new Signaling(config);
     this.serviceWorker = new ServiceWorkerMiddleware(config);
-
-    this.stunServer = config.stunServer;
+    this.stunServer = { iceServers: [] };
+    if (config.stunServer && config.stunServer.iceServers.length !== 0 && config.stunServer.iceServers[0].urls !== '') {
+      this.stunServer = config.stunServer;
+    }
     this.peerId = this.config.clientId;
     this.peers = [];
     this.requests = [];
@@ -1235,7 +1240,7 @@ var SystemTest = function () {
           return false;
         }
       }
-      return true;
+      return typeof navigator.serviceWorker !== 'undefined';
     }
   }, {
     key: 'webrtcInitialized',
@@ -1292,7 +1297,7 @@ var P2pCDN = function () {
     if (!config.clientId) return;
     this.systemTest = new SystemTest(this);
 
-    if (this.systemTest.testBrowser()) return;
+    if (!this.systemTest.testBrowser()) return;
 
     var idLength = config.idLength;
     if (config.logLevel === 'all') {

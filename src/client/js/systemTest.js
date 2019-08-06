@@ -15,7 +15,7 @@ class SystemTest {
         return false;
       }
     }
-    return true;
+    return typeof navigator.serviceWorker !== 'undefined';
   }
 
   webrtcInitialized() {

@@ -13,7 +13,7 @@ class ServiceWorkerMiddleware {
   }
 
   _initServiceWorker(config) {
-    const sw = navigator.serviceWorker || {};
+    const sw = navigator.serviceWorker;
 
     if(typeof(sw) === 'undefined' || typeof(idbKeyval) === 'undefined'){
       this.log("Failed to register service worker");
@@ -106,6 +106,9 @@ class ServiceWorkerMiddleware {
   }
 
   _initListeners() {
+    if(typeof navigator.serviceWorker === 'undefined'){
+      return;
+    }
     navigator.serviceWorker.addEventListener('message', this._onServiceWorkerMessage.bind(this));
 
     document.addEventListener('sw:clientReady', this._onClientReady.bind(this));
@@ -117,7 +120,7 @@ class ServiceWorkerMiddleware {
 
   messageToServiceWorker(msg) {
     return new Promise((resolve, reject) => {
-      if(!navigator.serviceWorker.controller){
+      if(!navigator.serviceWorker || !navigator.serviceWorker.controller){
         resolve(undefined);
         return;
       }

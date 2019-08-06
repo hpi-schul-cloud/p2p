@@ -3,7 +3,7 @@ class P2pCDN {
     if(!config.clientId) return;
     this.systemTest = new SystemTest(this);
 
-    if(this.systemTest.testBrowser()) return;
+    if(!this.systemTest.testBrowser()) return;
 
     const idLength = config.idLength;
     if(config.logLevel === 'all') {
