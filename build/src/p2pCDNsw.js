@@ -157,7 +157,7 @@ function isClientReady(client){
 function sendMessageToClient(msg, clientID) {
   return new Promise(async function(resolve, reject) {
     const client = await clients.get(clientID);
-    var timeout = 1000;
+    var timeout = 2000;
     if(typeof (config.fetchTimeout) !== 'undefined') {
       timeout = Number(config.fetchTimeout);
     }
