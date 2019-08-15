@@ -344,14 +344,18 @@ self.addEventListener('fetch', function(event) {
 
 self.addEventListener('message', function(event) {
   const msg = event.data;
-
+  if(typeof(event.ports[0]) === 'undefined') return undefined;
   if (msg.type === 'cache') {
     getCacheKeys().then(keys => {
       event.ports[0].postMessage(keys);
     });
   } else if (msg.type === 'resource') {
+    if(typeof(cacheResponse) === 'undefined') return;
     getFromCache(msg.resource).then(cacheResponse => {
-      if (typeof(cacheResponse) === undefined) return
+      if (typeof(cacheResponse) === 'undefined' || typeof(cacheResponse.arrayBuffer()) === 'undefined') {
+        event.ports[0].postMessage(undefined, [undefined]);
+        return;
+      }
       log('cached object ' + cacheResponse);
       cacheResponse.arrayBuffer().then(buffer => {
         log('got buffer ' + buffer);
