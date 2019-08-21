@@ -6,7 +6,7 @@ var excludedUrls;
 var hasClientConnection = false;
 var requests = [];
 var serverSendTimeout;
-var sendStatisticDelay = 10000;
+var sendStatisticDelay = 1000;
 
 self.addEventListener('install', function(event) {
   log("installing");
@@ -235,7 +235,7 @@ async function putIntoCache(key, response, clientId, iteration) {
 }
 
 function logStatistic(url, method, request, timing, from, peerId) {
-  if(!config.statisticPath) return;
+  //if(!config.statisticPath) return;
   var p_Id = peerId ? peerId : config.clientId
   var data = {
     'peerId': p_Id,
@@ -267,6 +267,8 @@ function sendStatisticToServer() {
       }
     }, sendStatisticDelay)
   }
+  if(config.statisticPath) return;
+  idbKeyval.set('swLogs', requests);
 }
 
 function handleRequest(url, clientId) {
