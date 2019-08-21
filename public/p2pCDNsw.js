@@ -325,7 +325,8 @@ function logStatistic(url, method, request, timing, from, peerId) {
     'method': method,
     'from': from,
     'url': url,
-    'loadTime': timing
+    'loadTime': timing,
+    'currentTime': Date.now()
   }
   requests.push(data)
   sendStatisticToServer();
