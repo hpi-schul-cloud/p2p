@@ -434,7 +434,6 @@ self.addEventListener('message', function(event) {
       event.ports[0].postMessage(keys);
     });
   } else if (msg.type === 'resource') {
-    if(typeof(cacheResponse) === 'undefined') return;
     getFromCache(msg.resource).then(cacheResponse => {
       if (typeof(cacheResponse) === 'undefined' || typeof(cacheResponse.arrayBuffer()) === 'undefined') {
         event.ports[0].postMessage(undefined, [undefined]);
