@@ -352,7 +352,7 @@ self.addEventListener('message', function(event) {
     });
   } else if (msg.type === 'resource') {
     getFromCache(msg.resource).then(cacheResponse => {
-      if (typeof(cacheResponse) === 'undefined' || typeof(cacheResponse.arrayBuffer()) === 'undefined') {
+      if (typeof(cacheResponse) === 'undefined') {
         event.ports[0].postMessage(undefined, [undefined]);
         return;
       }
