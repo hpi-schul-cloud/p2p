@@ -28,3 +28,4 @@ class P2pCDN {
     return this.systemTest;
   }
 }
+module.exports = P2pCDN;
