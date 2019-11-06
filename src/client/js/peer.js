@@ -23,9 +23,17 @@ class Peer {
     this.peers = [];
     this.requests = [];
     this.channel = config.channel;
+    this.pendingResourceRequests = {};
 
     this.message = Object.freeze({
-      types: {addedResource: 1, removedResource: 2, request: 3, chunk: 4, response: 5},
+      types: {
+        addedResource: 1,
+        removedResource: 2,
+        startedDownload: 3,
+        request: 4,
+        chunk: 5,
+        response: 6
+      },
       sizes: { // in byte
         type: 1,
         peerId: config.idLength,
@@ -214,7 +222,6 @@ class Peer {
     } else {
       msg = concatAbs([typeAb, fromAb, hashAb]);
     }
-
     this._sendViaDataChannel(peer, msg);
   }
 
@@ -224,7 +231,8 @@ class Peer {
     this.log('Request resource %s from peer %s', hash, peer.id);
     this._sendToPeer(peer, msgType, hash);
     this.requests.push(request);
-    // remove request after timeout to prevent dangling requests
+
+    // Remove request after timeout to prevent dangling requests
     setTimeout(() => {
       this._removeRequest(peer.id, hash);
     }, 20000)
@@ -233,16 +241,27 @@ class Peer {
   _addResource(peer, resource) {
     if (peer.resources.indexOf(resource) === -1) {
       peer.resources.push(resource);
+      const index = peer.downloadingResources.indexOf(resource);
+      if (index !== -1) {
+        this._triggerPendingRequestsFor(peer, resource);
+        peer.downloadingResources.splice(index, 1);
+      }
       this._updateUI();
     }
   }
-  _addResources(peer, resources) {
+
+  _addResourcesFrom(peer, resources) {
     for(var i = 0; i < resources.length; i += 1) {
       this._addResource(peer, resources[i]);
     }
   }
 
-  _removeResource(peer, resource) {
+  _startedDownloadFrom(peer, resource) {
+    this.log('Peer %s started to download resource %s', peer.id, resource)
+    peer.downloadingResources.push(resource)
+  }
+
+  _removeResourceFrom(peer, resource) {
     const index = peer.resources.indexOf(resource)
     if (index !== -1) {
       peer.resources.splice(index,1)
@@ -321,6 +340,17 @@ class Peer {
     return message;
   }
 
+  _triggerPendingRequestsFor(peer, resource) {
+    const pendingRequests = this.pendingResourceRequests[peer.id];
+    if (typeof pendingRequests === 'undefined' ||
+      typeof pendingRequests[resource] === 'undefined') {
+      return;
+    }
+    const resourceRequest = pendingRequests[resource]
+    this.requestResourceFromPeers(resource, resourceRequest.cb);
+    delete this.pendingResourceRequests[peer.id][resource]
+  }
+
   _handleUpdate(message, type) {
     const peer = this._getPeer(message.from);
     if (!peer) {
@@ -329,12 +359,15 @@ class Peer {
     }
 
     this.logDetail('updated peer %s with resource %s', message.from, message.hash);
-    if(type == this.message.types.addedResource){
-      this._addResources(peer, abToStr(message.data).split(','));
+    if(type === this.message.types.addedResource){
+      this._addResourcesFrom(peer, abToStr(message.data).split(','));
       return;
     }
-    this._removeResource(peer, message.hash);
-
+    if(type === this.message.types.startedDownload) {
+      this._startedDownloadFrom(peer, message.hash);
+      return;
+    }
+    this._removeResourceFrom(peer, message.hash);
   }
 
   _handleRequest(message){
@@ -475,6 +508,7 @@ class Peer {
           break;
         case types.addedResource:
         case types.removedResource:
+        case types.startedDownload:
           this._handleUpdate(message, message.type);
           break
         case types.request:
@@ -497,6 +531,7 @@ class Peer {
       dataChannel: null,
       resources: [],
       requestQueue: [],
+      downloadingResources: []
     };
     this.removePeer(peerID);
 
@@ -621,21 +656,37 @@ class Peer {
       });
     }
   }
+  _currentlyDownloading(resource) {
+    const peers = this.peers
+      .filter(p => p.downloadingResources.indexOf(resource) >= 0);
+    return peers;
+  }
 
   requestResourceFromPeers(hash, cb) {
     this.log('try to find a peer for resource %s', hash);
-    const peers = this.peers.filter(p => p.resources.indexOf(hash) >= 0);
-    const count = peers.length;
-
+    var peers = this.peers.filter(p => p.resources.indexOf(hash) >= 0);
+    var count = peers.length;
+    const waitForDownloadTimeout = 3000;
     this.logDetail('found %d peers', count);
 
     if (count > 0) {
       const randomPeerId = Math.floor(Math.random() * count);
       const peer = peers[randomPeerId];
-
       this._requestPeer(peer, this.message.types.request, hash, cb);
     } else {
-      cb(undefined);
+      const randomPeerId = Math.floor(Math.random() * count);
+      peers = this._currentlyDownloading(hash)
+      count = peers.length
+      if(count > 0) {
+        const peer = peers[randomPeerId];
+        if(typeof this.pendingResourceRequests[peer.id] === 'undefined') {
+          this.pendingResourceRequests[peer.id] = { }
+        }
+        this.pendingResourceRequests[peer.id][hash] = { 'cb': cb }
+      } else {
+        this.updatePeers(hash, this.message.types.startedDownload);
+        cb(undefined);
+      }
     }
   }
 }
