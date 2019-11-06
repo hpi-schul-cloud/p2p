@@ -666,7 +666,6 @@ class Peer {
     this.log('try to find a peer for resource %s', hash);
     var peers = this.peers.filter(p => p.resources.indexOf(hash) >= 0);
     var count = peers.length;
-    const waitForDownloadTimeout = 3000;
     this.logDetail('found %d peers', count);
 
     if (count > 0) {
@@ -683,6 +682,11 @@ class Peer {
           this.pendingResourceRequests[peer.id] = { }
         }
         this.pendingResourceRequests[peer.id][hash] = { 'cb': cb }
+
+        // Send a downloading message to other peers even if you are waiting
+        // for another download to be finished. Prevents a situation where
+        // all peers are trying to download the resource from a single client
+        this.updatePeers(hash, this.message.types.startedDownload);
       } else {
         this.updatePeers(hash, this.message.types.startedDownload);
         cb(undefined);
