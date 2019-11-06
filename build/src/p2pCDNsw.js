@@ -376,8 +376,9 @@ function handleRequest(url, clientId) {
           if (data && data.response) {
             var peerResponse = data.response;
             log('peerResponse ' + peerResponse.url);
-            putIntoCache(hash, peerResponse, clientId);
-            notifyPeersAboutAdd(hash, clientId);
+            putIntoCache(hash, peerResponse, clientId).then(function () {
+              notifyPeersAboutAdd(hash, clientId);
+            });
             var endTime = performance.now();
             logStatistic(
               url,
@@ -393,8 +394,9 @@ function handleRequest(url, clientId) {
           // get from the internet
           getFromInternet(url).then(response => {
             log('serverResponse ' + response.url);
-            putIntoCache(hash, response, clientId);
-            notifyPeersAboutAdd(hash, clientId);
+            putIntoCache(hash, response, clientId).then(function () {
+              notifyPeersAboutAdd(hash, clientId);
+            });
             var endTime = performance.now();
             logStatistic(url, 'serverResponse', response, endTime-startTime, 'server');
             resolve(response);
