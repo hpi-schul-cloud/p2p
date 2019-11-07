@@ -128,7 +128,7 @@ class ServiceWorkerMiddleware {
       // Handler for receiving message reply from service worker
       msg_chan.port1.onmessage = event => {
         if (event.data.error) {
-          reject(event.data.error);
+          resolve(undefined)
         } else {
           resolve(event.data);
         }

@@ -234,6 +234,7 @@ class Peer {
 
     // Remove request after timeout to prevent dangling requests
     setTimeout(() => {
+      request.respond({'error': 'Not finished in time'})
       this._removeRequest(peer.id, hash);
     }, 20000)
   }
@@ -385,7 +386,7 @@ class Peer {
   _handleResponse(message, responseAb) {
     const peer = this._getPeer(message.from);
     this.log('Sending request %s to peer: %s', message.hash, message.from)
-    if (responseAb.byteLength <= this.message.sizes.maxData) {
+    if (typeof responseAb === 'undefined' || responseAb.byteLength <= this.message.sizes.maxData) {
       this._sendToPeer(peer, this.message.types.response, message.hash, responseAb);
     } else {
       this._sendChunkedToPeer(peer, message.hash, responseAb);

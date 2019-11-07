@@ -134,13 +134,16 @@ function getFromCache(key) {
 
 async function getFromClient(clientId, hash) {
   log('Try to get resource from client: ' + hash);
-  // if(!hasClientConnection){
-  //   console.log("client is not ready");
-  //   return undefined;
-  // }
   const msg = {type: 'request', hash};
   const message = await sendMessageToClient(msg, clientId);
-
+  if (message.error) {
+    log(message.error);
+    return undefined;
+  }
+  if (message.data && message.data.data.length === 0) {
+    log('Received empty message from client');
+    return undefined;
+  }
   if (message.data && message.data.data)
     return {
       'peerId': message.data.peerId,
@@ -346,26 +349,33 @@ self.addEventListener('fetch', function(event) {
 });
 
 self.addEventListener('message', function(event) {
-  const msg = event.data;
-  if(typeof(event.ports[0]) === 'undefined') return undefined;
-  if (msg.type === 'cache') {
-    getCacheKeys().then(keys => {
-      event.ports[0].postMessage(keys);
-    });
-  } else if (msg.type === 'resource') {
-    getFromCache(msg.resource).then(cacheResponse => {
-      if (typeof(cacheResponse) === 'undefined') {
-        event.ports[0].postMessage(undefined, [undefined]);
-        return;
-      }
-      log('cached object ' + cacheResponse);
-      cacheResponse.arrayBuffer().then(buffer => {
-        log('got buffer ' + buffer);
-        event.ports[0].postMessage(buffer, [buffer]);
+  try {
+    const msg = event.data;
+    if(typeof(event.ports[0]) === 'undefined') return undefined;
+    if (msg.type === 'cache') {
+      getCacheKeys().then(keys => {
+        event.ports[0].postMessage(keys);
       });
-    });
-  } else if (msg.type === 'status' && msg.msg === 'ready') {
-    setConfig();
-    hasClientConnection = true;
+    } else if (msg.type === 'resource') {
+      getFromCache(msg.resource).then(cacheResponse => {
+        if (typeof(cacheResponse) === 'undefined') {
+          event.ports[0].postMessage({ 'error': 'Resource not found' });
+          return;
+        }
+        log('cached object ' + cacheResponse);
+        cacheResponse.arrayBuffer().then(buffer => {
+          log('got buffer ' + buffer);
+          event.ports[0].postMessage(buffer, [buffer]);
+        });
+      });
+    } else if (msg.type === 'status' && msg.msg === 'ready') {
+      setConfig();
+      hasClientConnection = true;
+    }
+  } catch (e) {
+    log(e);
+    if (typeof event.ports[0] !== 'undefined') {
+      event.ports[0].postMessage({ 'error': e} );
+    }
   }
 });
