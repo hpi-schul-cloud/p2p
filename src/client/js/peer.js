@@ -125,14 +125,12 @@ class Peer {
 
   _getRequestId(from, hash) {
     let idx = -1;
-
     for (let i = 0; i < this.requests.length; i++) {
       if (this.requests[i].from === from && this.requests[i].hash === hash) {
         idx = i;
         break;
       }
     }
-
     return idx;
   }
 
@@ -157,8 +155,9 @@ class Peer {
     this.logDetail('local session created: %o', desc);
 
     const peer = this._getPeer(peerId);
-
+    if(typeof peer.con === 'undefined') return;
     peer.con.setLocalDescription(desc).then(() => {
+      if(typeof peer.con === 'undefined') return;
       this.logDetail('sending local desc: %o', peer.con.localDescription);
       this.signaling.send(peer.id, peer.con.localDescription);
     });
@@ -397,6 +396,7 @@ class Peer {
     // this code leads to problems when a peer requests the same resource from the same peer at the same time
     const req = this._getRequest(message.from, message.hash);
     var response = {}
+    if (typeof req === 'undefined') return;
     req.chunks.push({id: message.chunkId, data: message.data});
 
     if(req.chunks.length === message.chunkCount) {
@@ -541,13 +541,10 @@ class Peer {
     return peer;
   }
 
-  _peerDisconnected(e){
-
-  }
   connectTo(peerID, isInitiator = true) {
+    var peer;
     this.logDetail('creating connection as initiator? %s', isInitiator);
-
-    const peer = this.addPeer(peerID);
+    peer = this.addPeer(peerID);
 
     peer.con.onicecandidate = event => {
       this.logDetail('icecandidate event: %o', event);
@@ -565,33 +562,33 @@ class Peer {
     };
 
     peer.con.oniceconnectionstatechange = event => {
-      if(event.target.iceConnectionState == 'disconnected') {
+      if(event.target.iceConnectionState === 'disconnected' || event.target.iceConnectionState === 'closed') {
         this.removePeer(peerID);
-        this.logDetail('Disconnected');
+        this.logDetail(event.target.iceConnectionState);
       }
     }
 
     if (isInitiator) {
       this.logDetail('creating data channel');
-
       peer.dataChannel = peer.con.createDataChannel('data');
       this._onDataChannelCreated(peer);
 
       this.logDetail('creating an offer');
-
       peer.con.createOffer().then(desc => {
         this._onLocalSessionCreated(peer.id, desc);
       });
-
     } else {
       peer.con.ondatachannel = event => {
         this.log('established connection to peer: %s', peer.id)
 
         peer.dataChannel = event.channel;
         this._onDataChannelCreated(peer);
-        var endTime = performance.now();
       };
     }
+  }
+
+  _handleCreateDescriptionError(error) {
+    this.log("Failed to establish peer connection: " + error);
   }
 
   receiveSignalMessage(peerId, message) {
@@ -606,18 +603,20 @@ class Peer {
       this.connectTo(peerId, false);
       peer = this._getPeer(peerId);
     }
+    if(typeof peer.con === 'undefined') return;
 
     if (message.type === 'offer') {
       this.logDetail('Got offer %o. Sending answer to peer.', message);
       peer.con.setRemoteDescription(message).then(() => {
+        if(typeof peer.con === 'undefined') return;
         peer.con.createAnswer().then(desc => {
           this._onLocalSessionCreated(peer.id, desc);
         });
-      });
+      }).catch(this._handleCreateDescriptionError);
 
     } else if (message.type === 'answer') {
       this.logDetail('Got answer. %o', message);
-      peer.con.setRemoteDescription(message);
+      peer.con.setRemoteDescription(message).catch(this._handleCreateDescriptionError);
 
     } else if (message.type === 'candidate') {
       peer.con.addIceCandidate(message).then(() => {
@@ -632,7 +631,8 @@ class Peer {
 
     if (idx >= 0) {
       this.log('remove peer %s', peerId);
-      this.peers[idx].con.close();
+      let con = this.peers[idx].con;
+      this.peers[idx].con = null;
       this.peers.splice(idx, 1);
 
       let i = 0;
@@ -646,6 +646,7 @@ class Peer {
           i += 1;
         }
       }
+      con.close();
     }
   }
 
