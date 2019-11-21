@@ -302,7 +302,9 @@ async function putIntoCache(key, response, clientId, iteration) {
   const obj = response.clone();
   var storage = await navigator.storage.estimate();
   const usedStorage = storage.usage;
-  var futureUsage = await getRequestSize(obj);
+
+  // make space for 10 requests of the same size
+  var futureUsage = await getRequestSize(obj) * 10;
   futureUsage += usedStorage;
 
   if(!config.storageQuota ||
