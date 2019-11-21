@@ -185,7 +185,9 @@ class Peer {
           reqs.forEach(_msg => send(_msg));
         }
       } catch(error) {
-        this.log(error)
+        if (console) {
+          console.log(error);
+        }
       }
     }
     switch (state) {
@@ -588,7 +590,9 @@ class Peer {
   }
 
   _handleCreateDescriptionError(error) {
-    this.log("Failed to establish peer connection: " + error);
+    if(console) {
+      console.log("Failed to establish peer connection: " + error)
+    }
   }
 
   receiveSignalMessage(peerId, message) {
