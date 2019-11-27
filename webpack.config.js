@@ -7,5 +7,8 @@ module.exports = {
     path: path.resolve(__dirname, './build/src'),
     library: 'P2pCDN',
   },
+  optimization:{
+        minimize: false
+    },
   mode: 'production'
 };
